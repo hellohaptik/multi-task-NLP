@@ -1,0 +1,16 @@
+# tasks file to give details for tasks to perform.
+# inspired by mt-dnn library
+
+querytype:
+    model_type: BERT
+    dropout_p: 0.05
+    metrics:
+    - ACC
+    - MCC
+    loss: CeCriterion
+    class_num: 5
+    task_type: Classification
+    file_names:
+    - train
+    - dev
+    - test

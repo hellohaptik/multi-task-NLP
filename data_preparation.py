@@ -1,6 +1,9 @@
 
 import argparse
+import os
+import multiprocessing as mp
 from data_utils import TaskType, ModelType
+from task_utils import TasksParam
 
 def load_data(dataPath, dataType):
     '''
@@ -201,13 +204,16 @@ def create_data_multithreaded(data, wrtPath, tokenizer, taskType, maxSeqLen, mod
     huge data with speed
     '''
     man = mp.Manager()
+
+    # shared list to store all temp files written by processes
     tempFilesList = man.list()
     numProcess = mp.cpu_count() - 1
 
-    # writer for file in which data is to be written. Opening this in append mode so that
-    # multiple processes can write with the object
-    writer = open(wrtPath, 'a')
-    # dividint the entire data into chunks which can be sent to different processes
+    '''
+    Dividing the entire data into chunks which can be sent to different processes.
+    Each process will write its chunk into a file. 
+    After all processes are done writing, we will combine all the files into one
+    '''
     chunkSize = int(len(allQueries) / (numProcess))
     print('chunk Size: ', chunkSize)
 
@@ -216,8 +222,14 @@ def create_data_multithreaded(data, wrtPath, tokenizer, taskType, maxSeqLen, mod
         dataChunk = data[chunkSize*i : chunkSize*(i+1)]
 
         if taskType == TaskType.SingleSenClassification:
-            p = mp.Process(target = create_data_single_sen_classification, args = (data, i, tempFilesList, maxSeqLen, tokenizer, modelType ))
+            p = mp.Process(target = create_data_single_sen_classification, args = (dataChunk, i, tempFilesList, maxSeqLen, tokenizer, modelType ))
+
+        if taskType == TaskType.SentencePairClassification:
+            p = mp.Process(target = create_data_sentence_pair_classification, args = (dataChunk, i, tempFilesList, maxSeqLen, tokenizer, modelType ))
         
+        if taskType == TaskType.Span:
+            p = mp.Process(target = create_data_span_prediction, args = (dataChunk, i, tempFilesList, maxSeqLen, tokenizer, modelType ))
+
         p.start()
         print('Process started: ', p)
         processes.append(p)
@@ -225,7 +237,7 @@ def create_data_multithreaded(data, wrtPath, tokenizer, taskType, maxSeqLen, mod
     for pr in processes:
         pr.join()
     
-    # combining the files written by multiple processes
+    # combining the files written by multiple processes into a single final file
     with open(wrtPath, 'w') as f:
         for file in tempFilesList:
             with open(file, 'r') as r:
@@ -234,3 +246,26 @@ def create_data_multithreaded(data, wrtPath, tokenizer, taskType, maxSeqLen, mod
                     f.write('{}\n'.format(json.dumps(sample)))
         os.remove(file)
 
+def main():
+
+    # taking in arguments
+    parser = argparse.ArgumentParser()
+    parser.add_argument('--task_file', type=str, default="task_file.yml")
+    parser.add_argument('--data_dir', type=str, default='data')
+    parser.add_argument('--model', type=str, default='bert-base-uncased',
+                        help='bert-base-uncased/bert-large-uncased/xlnet-large-cased/reberta-large')
+    parser.add_argument('--do_lower_case', action='store_true')
+    args = parser.parse_args()
+
+    tasks = TasksParam(args.task_file)
+    
+    assert os.path.exists(args.data_dir, "data dir doesnt exist")
+    dataPath = os.path.join(args.data_dir, tasks.modelType.name)
+    if not os.path.exists(dataPath):
+        os.mkdir(dataPath)
+
+    for taskName, taskVals in tasks.taskDetails.items():
+        for file in tasks.fileName[taskName]:
+            rows = load_data(os.path.join(args.data_dir, file), tasks.taskTypeMap[taskName])
+            create_data_multithreaded(rows, dataPath, ,
+                                     tasks.taskTypeMap[taskName], tasks.modelType)

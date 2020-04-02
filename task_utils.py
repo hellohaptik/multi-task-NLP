@@ -13,36 +13,19 @@ class TasksParam:
         self.taskDetails = yaml.safe_load(open(taskFilePath))
         self.modelType = self.validity_checks()
 
-        #global_map = {}
         classNumMap = {}
-        #data_type_map = {}
         taskTypeMap = {}
         metricsMap = {}
-        #enable_san_map = {}
         dropoutpMap = {}
-        #encoderType_map = {}
         lossMap = {}
-        #kd_loss_map = {}
         lossWeightMap = {}
 
-        #uniq_encoderType = set()
         for taskName, taskVals in self.taskDetails.items():
             classNumMap[taskName] = taskVals["class_num"]
-            #data_format = DataFormat[task_def["data_format"]]
-            #data_type_map[task] = data_format
             taskTypeMap[taskName] = TaskType[taskVals["task_type"]]
             metricsMap[taskName] = tuple(MetricType[metric_name] for metric_name in taskVals["metrics"])
-            #enable_san_map[task] = task_def["enable_san"]
-            #uniq_encoderType.add(EncoderModelType[task_def["encoder_type"]])
             fileNamesMap[taskName] = list(taskVals["file_names"])
-            '''
-            if "labels" in task_def:
-                labels = task_def["labels"]
-                label_mapper = Vocabulary(True)
-                for label in labels:
-                    label_mapper.add(label)
-                global_map[task] = label_mapper
-            '''
+
             if "dropout_p" in taskVals:
                 dropoutpMap[taskName] = taskVals["dropout_p"]
             # loss map
@@ -61,26 +44,12 @@ class TasksParam:
             else:
                 lossWeightMap[taskName] = float(1.0)
 
-            '''
-            if "kd_loss" in task_def:
-                t_loss = task_def["kd_loss"]
-                loss_crt = LossCriterion[t_loss]
-                kd_loss_map[task] = loss_crt
-            else:
-                kd_loss_map[task] = None
-            '''
-        #assert len(uniq_encoderType) == 1, 'The shared encoder has to be the same.'
-        #self.global_map = global_map
         self.classNumMap = classNumMap
-        #self.data_type_map = data_type_map
         self.taskTypeMap = taskTypeMap
         self.metricsMap = metricsMap
-        #self.enable_san_map = enable_san_map
         self.fileNamesMap = fileNamesMap
         self.dropoutpMap = dropoutpMap
-        #self.modelType = uniq_encoderType.pop()
         self.lossMap = lossMap
-        #self.kd_loss_map = kd_loss_map
         self.lossWeightMap = lossWeightMap
 
     def validity_checks(self):

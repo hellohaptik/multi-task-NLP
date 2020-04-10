@@ -55,15 +55,19 @@ def bert_data_converter(maxSeqLen, tokenizer, senA, senB = None):
     be changed to 'longest_first' or other if required.
     '''
     if senB:
-        inputIds, segmentIds, inputMask = tokenizer.encode_plus(senA, senB, add_special_tokens = True,
-                                                                truncation_strategy = 'only_second', max_length = maxSeqLen,
-                                                                pad_to_max_length = True)
+        out = tokenizer.encode_plus(senA, senB, add_special_tokens = True,
+                                    truncation_strategy = 'only_second', max_length = maxSeqLen,
+                                    pad_to_max_length = True)
     else:
-        inputIds, segmentIds, inputMask = tokenizer.encode(senA, add_special_tokens=True,
-                                                         truncation_strategy ='only_first',
-                                                         max_length = maxSeqLen, pad_to_max_length=True)
+        out = tokenizer.encode_plus(senA, add_special_tokens=True,
+                                    truncation_strategy ='only_first',
+                                    max_length = maxSeqLen, pad_to_max_length=True)
+                                                         
+    tokenIds = out['input_ids']
+    typeIds = out['token_type_ids']
+    mask = out['attention_mask']
 
-    return inputIds, segmentIds, inputMask
+    return tokenIds, typeIds, mask
 
 def albert_data_converter(maxSeqLen, tokenizer, senA, senB = None):
     '''
@@ -137,9 +141,9 @@ def create_data_sentence_pair_classification(data, chunkNumber, tempList, maxSeq
                     features = {
                         'uid': ids,
                         'label': label,
-                        'token_id': input_ids,
-                        'type_id': type_ids,
-                        'mask': input_mask}
+                        'token_id': inputIds,
+                        'type_id': typeIds,
+                        'mask': inputMask}
 
                 wf.write('{}\n'.format(json.dumps(features)))
 

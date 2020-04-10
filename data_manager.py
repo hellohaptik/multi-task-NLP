@@ -104,3 +104,69 @@ class Batcher(BatchSampler):
             batchTaskId = self.taskIdxId[taskIdx]
             batch = next(allTasksIters[taskIdx])
             yield [(batchTaskId, sampleIdx) for sampleIdx in batch]
+
+class batchUtils:
+    '''
+    This class is supposed to perform function which will help complete the batch data
+    when DataLoader creates batch using allTasksDataset and Batcher.
+    Main function would be
+    1. A function to make get the various components of input in batch samples and make them into 
+    Pytorch Tensors like token_id, type_ids, masks.
+
+    2. Collater function :- This function will use the above function to convert the batch into 
+    pytorch tensor inputs. As converting all the data into pytorch tensors before might not be a good 
+    idea due to space, hence this custom function will be used to convert the batches into tensors on the fly
+    by acting as custom collater function to DataLoader
+    '''
+
+    def __init__(self, isTrain, modelType, maxSeqLen, dropout = 0.005):
+        self.isTrain = isTrain
+        self.modelType = modelType
+        self.maxSeqLen = maxSeqLen
+        #self.dropout = dropout
+
+    def check_samples_len(self, batch):
+        #function to check whether all samples are having the maxSeqLen mentioned
+        for samp in batch:
+            assert len(samp['token_id']) == self.maxSeqLen, "token_id len doesn't match max seq len"
+            assert len(samp['type_id']) == self.maxSeqLen, "type_id len doesn't match max seq len"
+            assert len(samp['mask']) == self.maxSeqLen, "mask len doesn't match max seq len"
+
+    def make_batch_to_input_tensor(self, batch):
+        #check len in batch data
+        self.check_samples_len(batch)
+        batchSize = len(batch)
+        #initializing token id, type id, attention mask tensors for this batch
+        tokenIdsBatchTensor = torch.LongTensor(batchSize, self.maxSeqLen).fill_(0)
+        typeIdsBatchTensor = torch.LongTensor(batchSize, self.maxSeqLen).fill_(0)
+        masksBatchTensor = torch.LongTensor(batchSize, self.maxSeqLen).fill_(0)
+
+        #fillling in data from sample
+        for i, sample in enumerate(batch):
+            tokenIdsBatchTensor[i] = torch.LongTensor(sample['token_id'])
+            typeIdsBatchTensor[i] = torch.LongTensor(sample['type_id'])
+            masksBatchTensor[i] = torch.LongTensor(sample['mask'])
+
+        # meta deta will store more things like task id, task type etc. 
+        batchMetaData = {"token_id" : 0, "type_id" : 1, "mask" : 2}
+        batchData = [tokenIdsBatchTensor, typeIdsBatchTensor, masksBatchTensor]
+        return batchMetaData, batchData
+
+    def collate_fn(self, batch):
+        '''
+        This function will be used by DataLoader to return batches
+        '''
+        taskId = batch[0]["task"]["task_id"]
+        taskType = batch[0]["task"]["task_type"]
+
+        orgBatch = []
+        for sample in batch:
+            assert sample["task"]["task_id"] == taskId
+            assert sample["task"]["task_type"] == taskType
+            orgBatch.append(sample["sample"])
+
+        batch = orgBatch
+        #making tensor batch data
+        batchMetaData, batchData = self.make_batch_to_input_tensor(batch)
+        batchMetaData['task_id'] = taskId
+        batchMetaData['task_type'] = taskType

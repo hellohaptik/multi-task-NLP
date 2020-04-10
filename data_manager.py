@@ -2,6 +2,9 @@
 Script to manage datasets for multiple tasks
 '''
 from torch.utils.data import Dataset, DataLoader, BatchSampler
+from data_utils import TaskType, ModelType
+import torch
+import json
 
 class allTasksDataset(Dataset):
     '''
@@ -148,10 +151,11 @@ class batchUtils:
             masksBatchTensor[i] = torch.LongTensor(sample['mask'])
 
         # meta deta will store more things like task id, task type etc. 
-        batchMetaData = {"token_id" : 0, "type_id" : 1, "mask" : 2}
+        batchMetaData = {"token_id_pos" : 0, "type_id_pos" : 1, "mask_pos" : 2}
         batchData = [tokenIdsBatchTensor, typeIdsBatchTensor, masksBatchTensor]
         return batchMetaData, batchData
 
+    # method taken from MT-DNN with slight modifications.
     def collate_fn(self, batch):
         '''
         This function will be used by DataLoader to return batches
@@ -160,13 +164,58 @@ class batchUtils:
         taskType = batch[0]["task"]["task_type"]
 
         orgBatch = []
+        labels = []
         for sample in batch:
             assert sample["task"]["task_id"] == taskId
             assert sample["task"]["task_type"] == taskType
             orgBatch.append(sample["sample"])
+            labels.append(sample['label'])
 
         batch = orgBatch
         #making tensor batch data
         batchMetaData, batchData = self.make_batch_to_input_tensor(batch)
         batchMetaData['task_id'] = taskId
         batchMetaData['task_type'] = taskType
+
+        #adding label tensor when training (as they'll used for loss calculatoion and update)
+        # and in evaluation, it won't go with batch data, rather will keep it with meta data for metrics
+        if self.isTrain:
+            #position for label
+            batchMetaData['label_pos'] = len(batchData) - 1
+            if taskType in (TaskType.SingleSenClassification, TaskType.SentencePairClassification):
+                batchData.append(torch.FloatTensor(labels))
+            if taskType == TaskType.Span:
+                #in this case we will have a start and end instead of label
+                start = [sample['start_position'] for sample in batch]
+                end = [sample['end_position'] for sample in batch]
+                batchData.append((torch.LongTensor(start), torch.LongTensor(end)))
+        else:
+            # for test/eval labels won't be added into batch, but kept in meta data
+            # so metric evaluation can be done
+            batchMetaData['label'] = labels
+            if taskType == TaskType.Span:
+                batchMetaData['token_to_orig_map'] = [sample['token_to_orig_map'] for sample in batch]
+                batchMetaData['token_is_max_context'] = [sample['token_is_max_context'] for sample in batch]
+                batchMetaData['doc_offset'] = [sample['doc_offset'] for sample in batch]
+                batchMetaData['doc'] = [sample['doc'] for sample in batch]
+                batchMetaData['tokens'] = [sample['tokens'] for sample in batch]
+                batchMetaData['answer'] = [sample['answer'] for sample in batch]
+
+        batchMetaData['uids'] = [sample['uid'] for sample in batch]  # used in scoring
+        return batchMetaData, batchData
+
+    # method directly taken from MT-DNN for gpu memory pinning.
+    @staticmethod
+    def patch_data(gpu, batch_info, batch_data):
+        if gpu:
+            for i, part in enumerate(batch_data):
+                if isinstance(part, torch.Tensor):
+                    batch_data[i] = part.pin_memory().cuda(non_blocking=True)
+                elif isinstance(part, tuple):
+                    batch_data[i] = tuple(sub_part.pin_memory().cuda(non_blocking=True) for sub_part in part)
+                elif isinstance(part, list):
+                    batch_data[i] = [sub_part.pin_memory().cuda(non_blocking=True) for sub_part in part]
+                else:
+                    raise TypeError("unknown batch data type at %s: %s" % (i, part))
+
+        return batch_info, batch_data

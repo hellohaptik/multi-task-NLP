@@ -3,7 +3,8 @@
 
 querytype:
     model_type: BERT
-    dropout_p: 0.05
+    config_name: bert-base-uncased
+    #dropout_prob: 0.05
     metrics:
     - ACC
     - MCC

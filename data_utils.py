@@ -1,14 +1,21 @@
 # Copyright (c) Microsoft. All rights reserved.
 
 from enum import IntEnum
+from transformers import *
+
+NLP_MODELS = {
+    "bert": (BertConfig, BertModel, BertTokenizer), 'bert-base-uncased',
+    "distilbert": (DistilBertConfig, DistilBertModel, DistilBertTokenizer, 'distilbert-base-uncased')
+}
+
+class ModelType(IntEnum):
+    BERT = 1
+    DISTILBERT = 2
+
 class TaskType(IntEnum):
     SingleSenClassification = 1
     SentencePairClassification = 2
     Span = 3
-
-class ModelType(IntEnum):
-    BERT = 1
-    ALBERT = 2
 
 class MetricType(IntEnum):
     #accuracy for classification task
@@ -23,3 +30,4 @@ class MetricType(IntEnum):
 class LossType(IntEnum):
     CrossEntropyLoss = 0
     SpanLoss = 1
+

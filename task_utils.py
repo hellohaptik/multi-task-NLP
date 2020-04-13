@@ -1,5 +1,6 @@
 
 import yaml
+from collections import OrderedDict
 from data_utils import TaskType, MetricType, ModelType, LossType
 
 class TasksParam:
@@ -14,25 +15,38 @@ class TasksParam:
         self.modelType = self.validity_checks()
 
         classNumMap = {}
+        modelConfigMap = {}
         taskTypeMap = {}
+        taskNameIdMap = {}
+        taskIdNameMap = OrderedDict()
         metricsMap = {}
-        dropoutpMap = {}
+        dropoutProbMap = {}
         lossMap = {}
         lossWeightMap = {}
 
-        for taskName, taskVals in self.taskDetails.items():
+        for i, (taskName, taskVals) in enumerate(self.taskDetails.items()):
             classNumMap[taskName] = taskVals["class_num"]
+            taskNameIdMap[taskName] = i
+            taskIdNameMap[i] = taskName
             taskTypeMap[taskName] = TaskType[taskVals["task_type"]]
             metricsMap[taskName] = tuple(MetricType[metric_name] for metric_name in taskVals["metrics"])
             fileNamesMap[taskName] = list(taskVals["file_names"])
 
-            if "dropout_p" in taskVals:
-                dropoutpMap[taskName] = taskVals["dropout_p"]
+            if "config_name" in taskVals:
+                modelConfigMap[taskName] = taskVals["config_name"]
+            else:
+                modelConfigMap[taskName] = None
+
+            if "dropout_prob" in taskVals:
+                dropoutProbMap[taskName] = taskVals["dropout_prob"]
+            else:
+                dropoutProbMap[taskName] = 0.05
             # loss map
             if "loss_type" in taskVals:
                 lossMap[taskName] = LossType[taskVals["loss"]]
             else:
                 lossMap[taskName] = None
+
 
             if "loss_weight" in taskVals:
                 '''
@@ -46,9 +60,11 @@ class TasksParam:
 
         self.classNumMap = classNumMap
         self.taskTypeMap = taskTypeMap
+        self.taskNameIdMap = taskNameIdMap
+        self.taskIdNameMap = taskIdNameMap
         self.metricsMap = metricsMap
         self.fileNamesMap = fileNamesMap
-        self.dropoutpMap = dropoutpMap
+        self.dropoutProbMap = dropoutProbMap
         self.lossMap = lossMap
         self.lossWeightMap = lossWeightMap
 
@@ -58,6 +74,7 @@ class TasksParam:
         '''
         requiredParams = {"class_num", "task_type", "metrics", "loss_type", "file_names"}
         uniqueModel = set()
+        uniqueConfig = set()
         for taskName, taskVals in self.taskDetails:
             # check task name
             assert taskName.isalpha(), "only alphabets are allowed in task name. No special chracters/numbers/whitespaces allowed. Task Name: %s" % taskName
@@ -78,8 +95,12 @@ class TasksParam:
 
             # check model type, only one model type is allowed for all tasks
             uniqueModel.add(ModelType[taskVals["model_type"]])
+            if "config_name" in taskVals:
+                uniqueConfig.add(taskVals["config_name"])
+
 
         assert len(uniqueModel) == 1, "Only one type of model can be shared across all tasks"
+        assert len(uniqueConfig) > 1, "Model config has to be same across all shared tasks"
 
         #return model type from here
         return list(uniqueModel)[0]

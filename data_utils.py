@@ -5,8 +5,8 @@ from transformers import *
 from models.loss import *
 
 NLP_MODELS = {
-    "bert": (BertConfig, BertModel, BertTokenizer), 'bert-base-uncased',
-    "distilbert": (DistilBertConfig, DistilBertModel, DistilBertTokenizer), 'distilbert-base-uncased')
+    "bert": (BertConfig, BertModel, BertTokenizer, 'bert-base-uncased'),
+    "distilbert": (DistilBertConfig, DistilBertModel, DistilBertTokenizer, 'distilbert-base-uncased')
 }
 LOSSES = {
     "crossentropyloss" : CrossEntropyLoss,

@@ -22,6 +22,7 @@ class TasksParam:
         dropoutProbMap = {}
         lossMap = {}
         lossWeightMap = {}
+        fileNamesMap = {}
 
         for i, (taskName, taskVals) in enumerate(self.taskDetails.items()):
             classNumMap[taskName] = taskVals["class_num"]
@@ -80,8 +81,7 @@ class TasksParam:
             assert taskName.isalpha(), "only alphabets are allowed in task name. No special chracters/numbers/whitespaces allowed. Task Name: %s" % taskName
 
             # check all required arguments
-            assert len(requiredParams.intersection(set(taskVals.keys()))) == len(requiredParams),
-            "following parameters are required {}".format(requiredParams)
+            assert len(requiredParams.intersection(set(taskVals.keys()))) == len(requiredParams), "following parameters are required {}".format(requiredParams)
 
             #check is loss, metric. model type is correct
             try:
@@ -97,6 +97,10 @@ class TasksParam:
             uniqueModel.add(ModelType[taskVals["model_type"]])
             if "config_name" in taskVals:
                 uniqueConfig.add(taskVals["config_name"])
+
+            #check if all data files exists for task
+            for fileName in taskVals['file_names']:
+                assert os.path.exists(fileName)
 
 
         assert len(uniqueModel) == 1, "Only one type of model can be shared across all tasks"

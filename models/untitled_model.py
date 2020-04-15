@@ -12,7 +12,7 @@ class multiTaskNetwork(nn.module):
         assert self.taskParams.modelType in ModelType._value2member_map_, "Model Type is recognized, check in data_utils"
         self.modelType = self.taskParams.modelType
 
-        #making shared base encoder model
+        # making shared base encoder model
         # Initializing with a config file does not load the weights associated with the model,
         # only the configuration. Check out the from_pretrained() method to load the model weights.
         #modelName = ModelType(self.modelType).name.lower()

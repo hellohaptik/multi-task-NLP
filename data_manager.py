@@ -51,7 +51,7 @@ class allTasksDataset(Dataset):
     def __getitem__(self, idx):
         taskId, sampleId = idx
         out = {"task": {"task_id": taskId, "task_type": self.taskIdTypeMap[taskId]},
-                "sample": self.allTasksData[taskId][idx]}
+                "sample": self.allTasksData[taskId][sampleId]}
         return out
 
 class Batcher(BatchSampler):
@@ -108,6 +108,22 @@ class Batcher(BatchSampler):
             batchTaskId = self.taskIdxId[taskIdx]
             batch = next(allTasksIters[taskIdx])
             yield [(batchTaskId, sampleIdx) for sampleIdx in batch]
+            
+    # method directly taken from MT-DNN for gpu memory pinning.
+    @staticmethod
+    def patch_data(gpu, batch_info, batch_data):
+        if gpu:
+            for i, part in enumerate(batch_data):
+                if isinstance(part, torch.Tensor):
+                    batch_data[i] = part.pin_memory().cuda(non_blocking=True)
+                elif isinstance(part, tuple):
+                    batch_data[i] = tuple(sub_part.pin_memory().cuda(non_blocking=True) for sub_part in part)
+                elif isinstance(part, list):
+                    batch_data[i] = [sub_part.pin_memory().cuda(non_blocking=True) for sub_part in part]
+                else:
+                    raise TypeError("unknown batch data type at %s: %s" % (i, part))
+
+        return batch_info, batch_data
 
 class batchUtils:
     '''
@@ -204,19 +220,3 @@ class batchUtils:
 
         batchMetaData['uids'] = [sample['uid'] for sample in batch]  # used in scoring
         return batchMetaData, batchData
-
-    # method directly taken from MT-DNN for gpu memory pinning.
-    @staticmethod
-    def patch_data(gpu, batch_info, batch_data):
-        if gpu:
-            for i, part in enumerate(batch_data):
-                if isinstance(part, torch.Tensor):
-                    batch_data[i] = part.pin_memory().cuda(non_blocking=True)
-                elif isinstance(part, tuple):
-                    batch_data[i] = tuple(sub_part.pin_memory().cuda(non_blocking=True) for sub_part in part)
-                elif isinstance(part, list):
-                    batch_data[i] = [sub_part.pin_memory().cuda(non_blocking=True) for sub_part in part]
-                else:
-                    raise TypeError("unknown batch data type at %s: %s" % (i, part))
-
-        return batch_info, batch_data

@@ -1,24 +1,26 @@
 import torch
 import torch.nn as nn
 from dropout import DropoutWrapper
-from data_utils import ModelType, NLP_MODELS, TaskType
+from data_utils import ModelType, NLP_MODELS, TaskType, LOSSES
+from transformers import AdamW, get_linear_schedule_with_warmup
 
-class multiTaskModel(nn.module):
+class multiTaskNetwork(nn.module):
     def __init__(self, params):
         super(multiTaskModel, self).__init__()
         self.params = params
-        self.allTasks = self.params['task_params']
-        assert self.params['model_type'] in ModelType._value2member_map_, "Model Type is recognized, check in data_utils"
-        self.modelType = self.params['model_type']
+        self.taskParams = self.params['task_params']
+        assert self.taskParams.modelType in ModelType._value2member_map_, "Model Type is recognized, check in data_utils"
+        self.modelType = self.taskParams.modelType
 
         #making shared base encoder model
         # Initializing with a config file does not load the weights associated with the model,
         # only the configuration. Check out the from_pretrained() method to load the model weights.
-        modelName = ModelType(self.modelType).name.lower()
+        #modelName = ModelType(self.modelType).name.lower()
+        modelName = self.modelType.name.lower()
         configClass, modelClass, tokenizerClass, defaultName = NLP_MODELS[modelName]
-        if self.params["config_name"] is not None:
-            print('Making shared model from given config name {}'.format(self.params["config_name"]))
-            self.sharedModel = modelClass.from_pretrained(self.params["config_name"])
+        if self.taskParams.modelConfig is not None:
+            print('Making shared model from given config name {}'.format(self.taskParams.modelConfig))
+            self.sharedModel = modelClass.from_pretrained(self.taskParams.modelConfig)
         else:
             print("Making shared model with default config")
             self.sharedModel = modelClass.from_pretrained(defaultName)
@@ -39,10 +41,10 @@ class multiTaskModel(nn.module):
         allDropouts = nn.ModuleList()
 
         # taskIdNameMap is orderedDict, it will preserve the order of tasks
-        for taskId, taskName in self.allTasks.taskIdNameMap.items():
-            taskType = self.allTasks.taskTypeMap[taskName]
-            numClasses = int(self.allTasks.classNumMap[taskName])
-            dropoutValue = self.allTasks.dropoutProbMap[taskName]
+        for taskId, taskName in self.taskParams.taskIdNameMap.items():
+            taskType = self.taskParams.taskTypeMap[taskName]
+            numClasses = int(self.taskParams.classNumMap[taskName])
+            dropoutValue = self.taskParams.dropoutProbMap[taskName]
             if taskType == TaskType.Span:
                 assert numClasses == 2, " Span required num classes to be 2"
 
@@ -64,7 +66,7 @@ class multiTaskModel(nn.module):
                                 attention_mask = attentionMasks)
         sequenceOutput = outputs[0]
         pooledOutput = outputs[1]
-        taskType = self.allTasks.taskTypeMap[self.allTasks.taskIdNameMap[taskId]]
+        taskType = self.taskParams.taskTypeMap[self.taskParams.taskIdNameMap[taskId]]
         if taskType == TaskType.Span:
             #adding dropout layer after shared output
             sequenceOutput = self.allDropouts[taskId](sequenceOutput)
@@ -84,8 +86,4 @@ class multiTaskModel(nn.module):
             
             return logits
 
-
-
-
-
-
+class multiT

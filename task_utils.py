@@ -15,7 +15,6 @@ class TasksParam:
         self.modelType = self.validity_checks()
 
         classNumMap = {}
-        modelConfigMap = {}
         taskTypeMap = {}
         taskNameIdMap = {}
         taskIdNameMap = OrderedDict()
@@ -33,9 +32,9 @@ class TasksParam:
             fileNamesMap[taskName] = list(taskVals["file_names"])
 
             if "config_name" in taskVals:
-                modelConfigMap[taskName] = taskVals["config_name"]
+                modelConfig = taskVals["config_name"]
             else:
-                modelConfigMap[taskName] = None
+                modelConfig = None
 
             if "dropout_prob" in taskVals:
                 dropoutProbMap[taskName] = taskVals["dropout_prob"]
@@ -62,6 +61,7 @@ class TasksParam:
         self.taskTypeMap = taskTypeMap
         self.taskNameIdMap = taskNameIdMap
         self.taskIdNameMap = taskIdNameMap
+        self.modelConfig = modelConfig
         self.metricsMap = metricsMap
         self.fileNamesMap = fileNamesMap
         self.dropoutProbMap = dropoutProbMap

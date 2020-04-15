@@ -4,6 +4,7 @@ Script to manage datasets for multiple tasks
 from torch.utils.data import Dataset, DataLoader, BatchSampler
 from data_utils import TaskType, ModelType
 import torch
+import random
 import json
 
 class allTasksDataset(Dataset):
@@ -70,7 +71,7 @@ class Batcher(BatchSampler):
         self.allTasksDataBatchIdxs = []
         self.taskIdxId = []
         for taskId, data in self.allTasksData.items():
-            self.allTasksDataBatchIdxs.append(make_batches(len(data)))
+            self.allTasksDataBatchIdxs.append(self.make_batches(len(data)))
             self.taskIdxId.append(taskId)
 
     def make_batches(self, dataSize):

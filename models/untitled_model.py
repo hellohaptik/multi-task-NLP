@@ -86,4 +86,100 @@ class multiTaskNetwork(nn.module):
             
             return logits
 
-class multiT
+class multiTaskModel:
+    '''
+    This is the model helper class which is responsible for building the 
+    model architecture and training. It has following functions
+    1. Make the multi-task network
+    2. set optimizer with linear scheduler and warmup
+    3. Multi-gpu support
+    4. Task specific loss function
+    5. Model update for training
+    6. Predict function for inference
+    '''
+    def __init__(self, params):
+        self.params = params
+        self.taskParams = self.params['task_params']
+
+        # making model
+        if torch.cuda.device_count() > 1:
+            self.network = nn.DataParallel(multiTaskNetwork(params))
+        else:
+            self.network = multiTaskNetwork(params)
+
+        # transfering to gpu if available
+        if torch.cuda.is_available():
+            self.network.cuda()
+
+        #optimizer and scheduler
+        self.optimizer, self.scheduler = self.make_optimizer()
+        #loss class list
+        self.lossClassList = make_loss_list()
+
+
+    def make_optimizer(self, numTrainSteps, lr = 2e-5, eps = 1e-8, warmupSteps=0, optimizerState = None):
+        # we will use AdamW optimizer from huggingface transformers. This optimizer is 
+        #widely used with BERT. It is modified form of Adam which is used in Tensorflow 
+        #implementations
+        optimizer = AdamW(self.network.parameters(), lr=lr, eps = eps)
+
+        # lr scheduler
+        scheduler = get_linear_schedule_with_warmup(optimizer,
+                                                    num_warmup_steps=warmupSteps,
+                                                    num_training_steps=numTrainSteps)
+        if optimizerState:
+            # loading optimizer state if present, loading from a saved model where optimizer
+            # state is also stored.
+            optimizer.load_state_dict(optimizerState)
+        return optimizer, scheduler
+
+    def make_loss_list(self):
+        # making loss class list according to task id
+        lossClassList = []
+        for taskId, taskName in self.taskParams.taskIdNameMap.items():
+            lossName = self.taskParams.lossMap[taskName].name.lower()
+            lossClass = LOSSES[lossName]()
+            lossClassList.append(lossClass)
+        return lossClassList
+
+    def _to_cuda(self, tensor):
+        # Function directly taken from MT-DNN 
+        if tensor is None: return tensor
+
+        if isinstance(tensor, list) or isinstance(tensor, tuple):
+            y = [e.cuda(non_blocking=True) for e in tensor]
+            for e in y:
+                e.requires_grad = False
+        else:
+            y = tensor.cuda(non_blocking=True)
+            y.requires_grad = False
+        return y 
+
+    def update_step(self, batchMetaData, batchData):
+        #changing to train mode
+        self.network.train()
+        target = batchData[batchMetaData['label_pos']]
+
+        #transfering label to gpu if present
+        if torch.cuda.is_available():
+            target = self._to_cuda(target)
+        
+        taskType = batchMetaData['task_type']
+        taskId = batchMetaData['task_id']
+
+        #making forward pass
+        #batchData: [tokenIdsBatchTensor, typeIdsBatchTensor, masksBatchTensor]
+        #model forward function input [tokenIdsBatchTensor, typeIdsBatchTensor, masksBatchTensor, taskId]
+        modelInputs = batchData + [taskId]
+        logits = self.network(*modelInputs)
+        #calculating task loss
+        taskLoss = 0
+        if self.lossClassList[taskId] and (target is not None):
+            taskLoss = self.lossClassList[taskId](logits, target)
+            #tensorboard details
+            if self.params['tensorboard']:
+                self.tbTaskId = taskId
+                self.tbTaskLoss = taskLoss
+
+        taskLoss.backward()
+

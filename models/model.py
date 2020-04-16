@@ -101,6 +101,9 @@ class multiTaskModel:
         self.params = params
         self.taskParams = self.params['task_params']
 
+        self.globalStep = 0
+        self.accumulatedStep = 0
+
         # making model
         if torch.cuda.device_count() > 1:
             self.network = nn.DataParallel(multiTaskNetwork(params))
@@ -108,7 +111,7 @@ class multiTaskModel:
             self.network = multiTaskNetwork(params)
 
         # transfering to gpu if available
-        if torch.cuda.is_available():
+        if self.params['gpu']:
             self.network.cuda()
 
         #optimizer and scheduler
@@ -161,7 +164,7 @@ class multiTaskModel:
         target = batchData[batchMetaData['label_pos']]
 
         #transfering label to gpu if present
-        if torch.cuda.is_available():
+        if params['gpu']:
             target = self._to_cuda(target)
         
         taskType = batchMetaData['task_type']
@@ -175,11 +178,54 @@ class multiTaskModel:
         #calculating task loss
         taskLoss = 0
         if self.lossClassList[taskId] and (target is not None):
-            taskLoss = self.lossClassList[taskId](logits, target)
+            self.taskLoss = self.lossClassList[taskId](logits, target)
             #tensorboard details
             if self.params['tensorboard']:
                 self.tbTaskId = taskId
-                self.tbTaskLoss = taskLoss
-
+                self.tbTaskLoss = taskLoss.item()
+        taskLoss = self.taskLoss / self.params['grad_accumulation_steps']
         taskLoss.backward()
+        self.accumulatedStep += 1
+
+        #gradients will be updated only when accumulated steps become
+        #mentioned number in grad_acc_steps (one global update)
+        if self.accumulatedStep == self.params['grad_accumulation_steps']:
+            if self.params['grad_clip_value'] > 0:
+                torch.nn.utils.clip_grad_norm_(self.network.parameters(),
+                                                self.params['grad_clip_value'])
+
+            self.optimizer.step()
+            self.scheduler.step()
+
+            self.optimizer.zero_grad()
+            self.globalStep += 1
+            #resetting accumulated steps
+            self.accumulatedStep = 0
+
+    def save_multi_task_model(self, savePath):
+        '''
+        We will save the model parameters with state dict.
+        Also the current optimizer state.
+        Along with the current global_steps and epoch which would help
+        for resuming training
+        '''
+        modelStateDict = {k : v.cpu() for k,v in self.network.state_dict().items()}
+        toSave = {'model_state_dict' :modelStateDict,
+                'optimizer_state' : self.optimizer.state_dict(),
+                'scheduler_state' : self.scheduler.state_dict(),
+                'global_step' : self.globalStep}
+        torch.save(toSave)
+        logger.info('model saved in {} epoch and {} global step at {}'.format(epoch,
+                                                                            self.globalStep,
+                                                                            savePath))
+
+    def load_multi_task_model(self, loadPath):
+        savedModel = torch.load(loadPath)
+        self.network.load_state_dict(savedModel['model_state_dict'])
+        self.optimizer.load_state_dict(savedModel['optimizer_state'])
+        self.scheduler.load_state_dict(savedModel['scheduler_state'])
+        self.globalStep = savedModel['global_step']
+        logger.info('saved model loaded with global step {} from {}'.format(self.globalStep,
+                                                                            loadPath))
+
 

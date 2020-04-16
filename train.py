@@ -7,11 +7,14 @@ import numpy as np
 import logging
 import torch
 import os
-
+from datetime import datetime
+from tqdm import tqdm
+from torch.utils.tensorboard import SummaryWriter
 from task_utils import TasksParam
 from data_manager import allTasksDataset, Batcher, batchUtils
 from torch.utils.data import Dataset, DataLoader, BatchSampler
 from logger_ import make_logger
+from models.model import multiTaskModel
 
 def make_arguments(parser):
     parser.add_argument('--data_dir', type = str, required=True,
@@ -20,18 +23,30 @@ def make_arguments(parser):
                         help = 'path to the yml task file')
     parser.add_argument('--out_dir', type = str, required=True,
                         help = 'path to save the model')
+    parser.add_argument('--epochs', type = int, required=True,
+                        help = 'number of epochs to train')
     parser.add_argument('--train_batch_size', type = int, default=8,
                         help='batch size to use for training')
     parser.add_argument('--eval_batch_size', type = int, default = 32,
                         help = "batch size to use during evaluation")
+    parser.add_argumemt('--grad_accumulation_steps', type =int, default = 1,
+                        help = "number of steps to accumulate gradients before update")
+    parser.add_argument('--grad_clip_value', type = float, default=1.0,
+                        help = "gradient clipping value to avoid gradient overflowing" )
     parser.add_argument('--debug_mode', default = False, type = bool,
                         help = "record logs for debugging if True")
-    parser.add_argument('--log_file', default='multi_task_logs.txt', type = str,
+    parser.add_argument('--log_file', default='multi_task_logs.log', type = str,
                         help = "name of log file to store")
+    parser.add_argument('--s', default = 10, type = int,
+                        help = "number of steps after which to log loss")
     parser.add_argument('--seed', default=42, type = int,
                         help = "seed to set for modules")
     parser.add_argument('--max_seq_len', default=384, type =int,
                         help = "max seq length used for model at time of data preparation")
+    parser.add_argument('--tensorboard', defaut=True, type = bool,
+                        help = "To create tensorboard logs")
+    parser.add_argument('--save_per_updates', default = 0, type = int,
+                        help = "to keep saving model after this number of updates")
     return parser
     
     
@@ -40,8 +55,13 @@ parser = make_arguments(parser)
 args = parser.parse_args()
 
 #setting logging
+now = datetime.now()
+logDir = now.strftime("%d_%m-%H_%M")
+if not os.path.isdir(logDir):
+    os.makedirs(logDir)
+
 logger = make_logger(name = __name__, debugMode=args.debug_mode,
-                    logFile=args.log_file)
+                    logFile=os.path.join(logDir, args.log_file))
                     
 #setting seed
 random.seed(args.seed)
@@ -56,7 +76,7 @@ if not os.path.exists(args.out_dir):
     os.makedirs(args.out_dir)
 
 
-def make_data_handlers(taskParams, mode, isTrain):
+def make_data_handlers(taskParams, mode, isTrain, gpu):
     '''
     This function makes the allTaskDataset, Batch Sampler, Collater function
     and DataLoader for train, dev and test files as per mode.
@@ -85,7 +105,7 @@ def make_data_handlers(taskParams, mode, isTrain):
                                   maxSeqLen = args.max_seq_len)
     multiTaskDataLoader = DataLoader(allData, batch_sampler = batchSampler,
                                 collate_fn=batchSamplerUtils.collate_fn,
-                                pin_memory=torch.cuda.is_available())
+                                pin_memory=gpu)
 
     return allData, batchSampler, multiTaskDataLoader
 
@@ -96,28 +116,64 @@ def main():
 
     allParams = vars(args)
     allParams['task_params'] = taskParams
+    allParams['gpu'] = torch.cuda.is_available()
+
+    if args.tensorboard:
+        tensorboard = SummaryWriter(log_dir = os.path.join(logDir, 'tb_logs'))
 
     # making handlers for train 
     allDataTrain, BatchSamplerTrain, multiTaskDataLoaderTrain = make_data_handlers(taskParams,
-                                                                                "train", isTrain=True)
+                                                                                "train", isTrain=True,
+                                                                                gpu = allParams['gpu'])
     # if evaluation on dev set is required during training. Labels are required
     # It will occur at the end of each epoch
     if args.eval_while_train:
         allDataDev, BatchSamplerDev, multiTaskDataLoaderDev = make_data_handlers(taskParams,
-                                                                                "dev", isTrain=False)
+                                                                                "dev", isTrain=False,
+                                                                                gpu=allParams['gpu'])
     # if evaluation on test set is required during training. Labels are required
     # It will occur at the end of each epoch
     if args.test_while_train:
         allDataTest, BatchSamplerTest, multiTaskDataLoaderTest = make_data_handlers(taskParams,
-                                                                                "test", isTrain=False)   
-           
+                                                                                "test", isTrain=False,
+                                                                                gpu=allParams['gpu'])
+    #making multi-task model
+    model = multiTaskModel(allParams)
+    logging.info('################ Network ###################')
+    logging.info('\n{}\n'.format(model.network))
+
+    # training 
+    for epoch in tqdm(range(args.epochs)):
+        logger.info('\n####################### EPOCH {} ###################\n'.format(epoch))
+        totalEpochLoss = 0
+        for i, (batchMetaData, batchData) in enumerate(multiTaskDataLoaderTrain):
+            batchMetaData, batchData = BatchSamplerTrain.patch_data(gpu = allParams['gpu'],
+                                                                    batchMetaData, batchData)
+            model.update_step(batchMetaData, batchData)
+            totalEpochLoss += model.taskLoss.item()
+
+            if model.globalStep % args.log_per_updates == 0 or model.globalStep ==1:
+                taskId = batchMetaData['task_id']
+                taskName = taskParams.taskIdNamssseMap[taskId]
+                avgLoss = totalEpochLoss / ((i+1)*args.batch_size) 
+                logger.info('Steps: {} Task: {} Avg.Loss: {} Task Loss: {}'.format(model.globalStep,
+                                                                                taskName,
+                                                                                avgLoss,
+                                                                                model.taskLoss.item()))
+                if args.tensorboard:
+                    tensorboard.add_scalar('train/avg_loss', avgLoss, globel_step= model.globalStep)
+                    tensorboard.add_scalar('train/{}_loss'.format(taskName),
+                                            model.taskLoss.item(),
+                                            global_step=model.globalStep)
+
+            if args.save_per_updates > 0:
+                savePath = os.path.join(args.out_dir, 'multi_task_model_{}_{}.pt'.format(epoch,
+                                                                                        model.globalStep))
+                model.save_multi_task_model(savePath)
+
+    #saving model after epoch
+    savePath = os.path.join(args.out_dir, 'multi_task_model_{}_{}.pt'.format(epoch, model.globalStep))  
+    model.save_multi_task_model(savePath)
 
 
-
-
-
-
-
-
-
-
+                

@@ -15,7 +15,7 @@ class CrossEntropyLoss(_Loss):
         self.name = name
 
     def forward(self, inp, target, ignore_index = -1):
-        loss = F.cross_entropy(input, target, ignore_index=ignore_index) 
+        loss = F.cross_entropy(inp, target, ignore_index=ignore_index) 
         loss *= self.alpha
         return loss
 

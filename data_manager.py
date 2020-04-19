@@ -5,7 +5,9 @@ from torch.utils.data import Dataset, DataLoader, BatchSampler
 from data_utils import TaskType, ModelType
 import torch
 import random
+import logging
 import json
+logger = logging.getLogger("multi_task")
 
 class allTasksDataset(Dataset):
     '''
@@ -15,12 +17,13 @@ class allTasksDataset(Dataset):
                 [ {"data_task_id" : "", "data_path" : "", "data_task_type" : ""},
                  ...]
     '''
-    def __init_(self, taskDict):
+    def __init__(self, taskDict):
         self.taskDict = taskDict
         self.allTasksData, self.taskIdTypeMap = self.make_all_datasets()
 
     def read_data(self, readPath):
         with open(readPath, 'r', encoding = 'utf-8') as file:
+            logger.info('Reading data from file {}'.format(readPath))
             taskData = []
             for i, line in enumerate(file):
                 sample = json.loads(line)
@@ -35,11 +38,11 @@ class allTasksDataset(Dataset):
         allTasksData = {}
         taskIdTypeMap = {} # mapping from task id to task type
         for task in self.taskDict:
+            
             data = self.read_data(task["data_path"])
             allTasksData[task["data_task_id"]] = data
             taskIdTypeMap[task["data_task_id"]] = task["data_task_type"]
-
-            print('Read Data for Task Id: {}. Samples {}'.format(task["data_task_id"], len(data)))
+            logger.info('Read Data for Task Id: {} Task Name: {}. Samples {}'.format(task["data_task_id"], task["data_task_name"], len(data)))
         return allTasksData, taskIdTypeMap
 
     # some standard functions which need to be overridden from Dataset
@@ -110,8 +113,7 @@ class Batcher(BatchSampler):
             yield [(batchTaskId, sampleIdx) for sampleIdx in batch]
             
     # method directly taken from MT-DNN for gpu memory pinning.
-    @staticmethod
-    def patch_data(gpu, batch_info, batch_data):
+    def patch_data(self, batch_info, batch_data, gpu = None):
         if gpu:
             for i, part in enumerate(batch_data):
                 if isinstance(part, torch.Tensor):
@@ -186,8 +188,9 @@ class batchUtils:
             assert sample["task"]["task_id"] == taskId
             assert sample["task"]["task_type"] == taskType
             orgBatch.append(sample["sample"])
-            labels.append(sample['label'])
-
+            labels.append(int(sample["sample"]["label"]))
+            #print(type(sample["sample"]["label"]))
+        #print(labels)
         batch = orgBatch
         #making tensor batch data
         batchMetaData, batchData = self.make_batch_to_input_tensor(batch)
@@ -197,15 +200,16 @@ class batchUtils:
         #adding label tensor when training (as they'll used for loss calculatoion and update)
         # and in evaluation, it won't go with batch data, rather will keep it with meta data for metrics
         if self.isTrain:
-            #position for label
-            batchMetaData['label_pos'] = len(batchData) - 1
+
             if taskType in (TaskType.SingleSenClassification, TaskType.SentencePairClassification):
-                batchData.append(torch.FloatTensor(labels))
+                batchData.append(torch.LongTensor(labels))
             if taskType == TaskType.Span:
                 #in this case we will have a start and end instead of label
                 start = [sample['start_position'] for sample in batch]
                 end = [sample['end_position'] for sample in batch]
                 batchData.append((torch.LongTensor(start), torch.LongTensor(end)))
+            #position for label
+            batchMetaData['label_pos'] = len(batchData) - 1
         else:
             # for test/eval labels won't be added into batch, but kept in meta data
             # so metric evaluation can be done

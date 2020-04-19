@@ -1,17 +1,30 @@
 # tasks file to give details for tasks to perform.
 # inspired by mt-dnn library
-
 querytype:
     model_type: BERT
     config_name: bert-base-uncased
-    #dropout_prob: 0.05
+    dropout_prob: 0.05
     metrics:
     - ACC
     - MCC
-    loss: CeCriterion
+    loss_type: CrossEntropyLoss
     class_num: 5
-    task_type: Classification
+    task_type: SingleSenClassification
     file_names:
-    - train
-    - dev
-    - test
+    - querytype_train.tsv
+    - querytype_dev.tsv
+    - querytype_test.tsv
+    
+querytypecontextcombined:
+    model_type: BERT
+    config_name: bert-base-uncased
+    dropout_prob: 0.05
+    metrics:
+    - ACC
+    - MCC
+    loss_type: CrossEntropyLoss
+    class_num: 5
+    task_type: SentencePairClassification
+    file_names:
+    - querytypecontextcombined_train.tsv
+    - querytypecontextcombined_dev.tsv

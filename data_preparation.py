@@ -1,9 +1,11 @@
 
 import argparse
 import os
+import json
 import multiprocessing as mp
-from data_utils import TaskType, ModelType
+from data_utils import TaskType, ModelType, NLP_MODELS
 from task_utils import TasksParam
+from tqdm import tqdm, trange
 
 def load_data(dataPath, dataType):
     '''
@@ -45,7 +47,7 @@ def load_data(dataPath, dataType):
 
     return allData
 
-def bert_data_converter(maxSeqLen, tokenizer, senA, senB = None):
+def standard_data_converter(maxSeqLen, tokenizer, senA, senB = None):
     '''
     If the data is sentence Pair, -> [CLS]senA[SEP]senB[SEP]
     If data is single sentence -> [CLS]senA[SEP]
@@ -69,91 +71,53 @@ def bert_data_converter(maxSeqLen, tokenizer, senA, senB = None):
 
     return tokenIds, typeIds, mask
 
-def albert_data_converter(maxSeqLen, tokenizer, senA, senB = None):
-    '''
-    If the data is sentence Pair, -> [CLS]senA[SEP]senB[SEP]
-    If data is single sentence -> [CLS]senA[SEP]
 
-    Truncation stategy will truncate the 2nd sentence only (that is passage.
-    This would be helpful as we don't want to truncate the query). The strategy can 
-    be changed to 'longest_first' or other if required.
-    '''
-    if senB:
-        inputIds, segmentIds, inputMask = tokenizer.encode_plus(senA, senB, add_special_tokens = True,
-                                                                truncation_strategy = 'only_second', max_length = maxSeqLen,
-                                                                pad_to_max_length = True)
-    else:
-        inputIds, segmentIds, inputMask = tokenizer.encode(senA, add_special_tokens=True,
-                                                         truncation_strategy ='only_first',
-                                                         max_length = maxSeqLen, pad_to_max_length=True)
-    return inputIds, segmentIds, inputMask
-
-def create_data_single_sen_classification(data, chunkNumber, tempList, maxSeqLen, tokenizer, modelType):
+def create_data_single_sen_classification(data, chunkNumber, tempList, maxSeqLen, tokenizer):
     name = 'single_sen_{}.json'.format(str(chunkNumber))
     with open(name, 'w') as wf:
-            
+        with tqdm(total = len(data), position = chunkNumber) as progress:
             for idx, sample in enumerate(data):
                 ids = sample['uid']
                 senA = sample['sentenceA']
                 label = sample['label']
             
-                if modelType == ModelType.ALBERT:
-                    inputIds, typeIds, inputMask = albert_data_converter(maxSeqLen, tokenizer, senA)
-                    features = {
-                        'uid': ids,
-                        'label': label,
-                        'token_id': inputIds,
-                        'type_id': typeIds,
-                        'mask': inputMask}
-                elif modelType == ModelType.BERT:
-                    inputIds, typeIds, inputMask = bert_data_converter(maxSeqLen, tokenizer, senA)
-                    features = {
-                        'uid': ids,
-                        'label': label,
-                        'token_id': input_ids,
-                        'type_id': type_ids,
-                        'mask': input_mask}
-
+                inputIds, typeIds, inputMask = standard_data_converter(maxSeqLen, tokenizer, senA)
+                features = {
+                    'uid': ids,
+                    'label': label,
+                    'token_id': inputIds,
+                    'type_id': typeIds,
+                    'mask': inputMask}
                 wf.write('{}\n'.format(json.dumps(features)))
-
+                progress.update(1)
             tempList.append(name)
 
-def create_data_sentence_pair_classification(data, chunkNumber, tempList, maxSeqLen, tokenizer, modelType):
+def create_data_sentence_pair_classification(data, chunkNumber, tempList, maxSeqLen, tokenizer):
     name = 'sentence_pair_{}.json'.format(str(chunkNumber))
     with open(name, 'w') as wf:
-            
+        with tqdm(total = len(data), position = chunkNumber) as progress:    
             for idx, sample in enumerate(data):
                 ids = sample['uid']
                 senA = sample['sentenceA']
                 senB = sample['sentenceB']
                 label = sample['label']
             
-                if modelType == ModelType.ALBERT:
-                    inputIds, typeIds, inputMask = albert_data_converter(maxSeqLen, tokenizer, senA, senB)
-                    features = {
-                        'uid': ids,
-                        'label': label,
-                        'token_id': inputIds,
-                        'type_id': typeIds,
-                        'mask': inputMask}
-                elif modelType == ModelType.BERT:
-                    inputIds, typeIds, inputMask = bert_data_converter(maxSeqLen, tokenizer, senA, senB)
-                    features = {
-                        'uid': ids,
-                        'label': label,
-                        'token_id': inputIds,
-                        'type_id': typeIds,
-                        'mask': inputMask}
+                inputIds, typeIds, inputMask = standard_data_converter(maxSeqLen, tokenizer, senA, senB)
+                features = {
+                    'uid': ids,
+                    'label': label,
+                    'token_id': inputIds,
+                    'type_id': typeIds,
+                    'mask': inputMask}
 
                 wf.write('{}\n'.format(json.dumps(features)))
+                progress.update(1)
+        tempList.append(name)
 
-            tempList.append(name)
-
-def create_data_span_prediction(data, chunkNumber, tempList, maxSeqLen, tokenizer, modelType):
+def create_data_span_prediction(data, chunkNumber, tempList, maxSeqLen, tokenizer):
     name = 'span_prediction_{}.json'.format(str(chunkNumber))
+    '''
     with open(name, 'w') as wf:
-
-        # this part is taken from MT-DNN 
         unique_id = 1000000000 
         for example_index, sample in enumerate(data):
             ids = sample['uid']
@@ -198,10 +162,9 @@ def create_data_span_prediction(data, chunkNumber, tempList, maxSeqLen, tokenize
                 writer.write('{}\n'.format(so))
 
             tempList.append(name)
-
-
+    '''
             
-def create_data_multithreaded(data, wrtPath, tokenizer, taskType, maxSeqLen, modelType):
+def create_data_multithreaded(data, wrtPath, tokenizer, taskType, maxSeqLen, multithreaded):
     '''
     This function uses multi-processing to create the data in the required format
     for base models as per the task. Utilizing multiple Cores help in processing
@@ -211,31 +174,34 @@ def create_data_multithreaded(data, wrtPath, tokenizer, taskType, maxSeqLen, mod
 
     # shared list to store all temp files written by processes
     tempFilesList = man.list()
-    numProcess = mp.cpu_count() - 1
+    numProcess = 1
+    if multithreaded:
+        numProcess = mp.cpu_count() - 1
 
     '''
     Dividing the entire data into chunks which can be sent to different processes.
     Each process will write its chunk into a file. 
     After all processes are done writing, we will combine all the files into one
     '''
-    chunkSize = int(len(allQueries) / (numProcess))
-    print('chunk Size: ', chunkSize)
+    chunkSize = int(len(data) / (numProcess))
+    print('Data Size: ', len(data))
+    print('number of threads: ', numProcess)
 
     processes = []
     for i in range(numProcess):
         dataChunk = data[chunkSize*i : chunkSize*(i+1)]
 
         if taskType == TaskType.SingleSenClassification:
-            p = mp.Process(target = create_data_single_sen_classification, args = (dataChunk, i, tempFilesList, maxSeqLen, tokenizer, modelType ))
+            p = mp.Process(target = create_data_single_sen_classification, args = (dataChunk, i, tempFilesList, maxSeqLen, tokenizer))
 
         if taskType == TaskType.SentencePairClassification:
-            p = mp.Process(target = create_data_sentence_pair_classification, args = (dataChunk, i, tempFilesList, maxSeqLen, tokenizer, modelType ))
+            p = mp.Process(target = create_data_sentence_pair_classification, args = (dataChunk, i, tempFilesList, maxSeqLen, tokenizer))
         
         if taskType == TaskType.Span:
-            p = mp.Process(target = create_data_span_prediction, args = (dataChunk, i, tempFilesList, maxSeqLen, tokenizer, modelType ))
+            p = mp.Process(target = create_data_span_prediction, args = (dataChunk, i, tempFilesList, maxSeqLen, tokenizer))
 
         p.start()
-        print('Process started: ', p)
+        #print('Process started: ', p)
         processes.append(p)
         
     for pr in processes:
@@ -248,28 +214,46 @@ def create_data_multithreaded(data, wrtPath, tokenizer, taskType, maxSeqLen, mod
                 for line in r:
                     sample =  json.loads(line)
                     f.write('{}\n'.format(json.dumps(sample)))
-        os.remove(file)
+            os.remove(file)
 
 def main():
 
     # taking in arguments
     parser = argparse.ArgumentParser()
-    parser.add_argument('--task_file', type=str, default="task_file.yml")
+    parser.add_argument('--task_file', type=str, default="tasks_file.yml")
     parser.add_argument('--data_dir', type=str, default='data')
-    parser.add_argument('--model', type=str, default='bert-base-uncased',
-                        help='bert-base-uncased/bert-large-uncased/xlnet-large-cased/reberta-large')
-    parser.add_argument('--do_lower_case', action='store_true')
+    parser.add_argument('--do_lower_case', type=bool, default=True)
+    parser.add_argument('--max_seq_len', type=int, default = 384,
+                        help = "max sequence length for making data for model")
+    parser.add_argument('--multithreaded', type = bool, default = True,
+                        help = "use multiple threads for processing data with speed")
     args = parser.parse_args()
 
     tasks = TasksParam(args.task_file)
+    print('task object created from task file...')
+    assert os.path.exists(args.data_dir), "data dir doesnt exist"
+    modelName = tasks.modelType.name.lower()
+    configClass, modelClass, tokenizerClass, defaultName = NLP_MODELS[modelName]
+    configName = tasks.modelConfig
+    if configName is None:
+        configName = defaultName
     
-    assert os.path.exists(args.data_dir, "data dir doesnt exist")
-    dataPath = os.path.join(args.data_dir, tasks.modelType.name)
+    #making tokenizer for model
+    tokenizer = tokenizerClass.from_pretrained(configName)
+    print('{} model tokenizer loaded for config {}'.format(modelName, configName))
+    dataPath = os.path.join(args.data_dir, '{}_prepared_data'.format(configName))
     if not os.path.exists(dataPath):
         os.mkdir(dataPath)
 
-    for taskName, taskVals in tasks.taskDetails.items():
-        for file in tasks.fileName[taskName]:
+    for taskId, taskName in tasks.taskIdNameMap.items():
+        for file in tasks.fileNamesMap[taskName]:
+            print('Loading raw data for task {} from {}'.format(taskName, os.path.join(args.data_dir, file)))
             rows = load_data(os.path.join(args.data_dir, file), tasks.taskTypeMap[taskName])
-            create_data_multithreaded(rows, dataPath, ,
-                                     tasks.taskTypeMap[taskName], tasks.modelType)
+            wrtFile = os.path.join(dataPath, '{}.json'.format(file.split('.')[0]))
+            print('Processing Started...')
+            create_data_multithreaded(rows, wrtFile, tokenizer, tasks.taskTypeMap[taskName],
+                                    args.max_seq_len, args.multithreaded)
+            print('Data Processing done for {}. File saved at {}'.format(taskName, wrtFile))
+            
+if __name__ == "__main__":
+    main()

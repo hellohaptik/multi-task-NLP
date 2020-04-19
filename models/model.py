@@ -1,15 +1,17 @@
 import torch
 import torch.nn as nn
-from dropout import DropoutWrapper
+import logging
+from models.dropout import DropoutWrapper
 from data_utils import ModelType, NLP_MODELS, TaskType, LOSSES
 from transformers import AdamW, get_linear_schedule_with_warmup
+logger = logging.getLogger("multi_task")
 
-class multiTaskNetwork(nn.module):
+class multiTaskNetwork(nn.Module):
     def __init__(self, params):
-        super(multiTaskModel, self).__init__()
+        super(multiTaskNetwork, self).__init__()
         self.params = params
         self.taskParams = self.params['task_params']
-        assert self.taskParams.modelType in ModelType._value2member_map_, "Model Type is recognized, check in data_utils"
+        assert self.taskParams.modelType in ModelType._value2member_map_, "Model Type is not recognized, check in data_utils"
         self.modelType = self.taskParams.modelType
 
         # making shared base encoder model
@@ -19,16 +21,16 @@ class multiTaskNetwork(nn.module):
         modelName = self.modelType.name.lower()
         configClass, modelClass, tokenizerClass, defaultName = NLP_MODELS[modelName]
         if self.taskParams.modelConfig is not None:
-            print('Making shared model from given config name {}'.format(self.taskParams.modelConfig))
+            logger.info('Making shared model from given config name {}'.format(self.taskParams.modelConfig))
             self.sharedModel = modelClass.from_pretrained(self.taskParams.modelConfig)
         else:
-            print("Making shared model with default config")
+            logger.info("Making shared model with default config")
             self.sharedModel = modelClass.from_pretrained(defaultName)
         self.hiddenSize = self.sharedModel.config.hidden_size
         
         #making headers
-        self.allDropouts, self.allHeaders = make_multitask_heads()
-
+        self.allDropouts, self.allHeaders = self.make_multitask_heads()
+        self.initialize_headers()
     def make_multitask_heads(self):
         '''
         Function to make task specific headers for all tasks.
@@ -57,6 +59,16 @@ class multiTaskNetwork(nn.module):
         return allDropouts, allHeaders
 
     def initialize_headers(self):
+        def init_weights(module):
+            if isinstance(module, (nn.Linear, nn.Embedding)):
+                # Slightly different from the TF version which uses truncated_normal for initialization
+                # cf https://github.com/pytorch/pytorch/pull/5617
+                module.weight.data.normal_(mean=0.0, std=0.02 * 1.0)
+            if isinstance(module, nn.Linear):
+                if module.bias is not None:
+                    module.bias.data.zero_()
+
+        self.apply(init_weights)
 
     def forward(self, tokenIds, typeIds, attentionMasks, taskId):
 
@@ -106,21 +118,24 @@ class multiTaskModel:
 
         # making model
         if torch.cuda.device_count() > 1:
+            logger.info("Using number of gpus: {}".format(torch.cuda.device_count()))
             self.network = nn.DataParallel(multiTaskNetwork(params))
         else:
             self.network = multiTaskNetwork(params)
+            logger.info('Using single GPU')
 
         # transfering to gpu if available
         if self.params['gpu']:
             self.network.cuda()
 
         #optimizer and scheduler
-        self.optimizer, self.scheduler = self.make_optimizer()
+        self.optimizer, self.scheduler = self.make_optimizer(numTrainSteps=self.params['num_train_steps'],
+                                                            warmupSteps=self.params['warmup_steps'])
         #loss class list
-        self.lossClassList = make_loss_list()
+        self.lossClassList = self.make_loss_list()
 
 
-    def make_optimizer(self, numTrainSteps, lr = 2e-5, eps = 1e-8, warmupSteps=0, optimizerState = None):
+    def make_optimizer(self, numTrainSteps, lr = 2e-5, eps = 1e-8, warmupSteps=0):
         # we will use AdamW optimizer from huggingface transformers. This optimizer is 
         #widely used with BERT. It is modified form of Adam which is used in Tensorflow 
         #implementations
@@ -130,10 +145,7 @@ class multiTaskModel:
         scheduler = get_linear_schedule_with_warmup(optimizer,
                                                     num_warmup_steps=warmupSteps,
                                                     num_training_steps=numTrainSteps)
-        if optimizerState:
-            # loading optimizer state if present, loading from a saved model where optimizer
-            # state is also stored.
-            optimizer.load_state_dict(optimizerState)
+        logger.debug("optimizer and scheduler created")
         return optimizer, scheduler
 
     def make_loss_list(self):
@@ -164,25 +176,34 @@ class multiTaskModel:
         target = batchData[batchMetaData['label_pos']]
 
         #transfering label to gpu if present
-        if params['gpu']:
+        if self.params['gpu']:
             target = self._to_cuda(target)
-        
+
         taskType = batchMetaData['task_type']
         taskId = batchMetaData['task_id']
-
+        logger.debug('task id for batch {}'.format(taskId))
         #making forward pass
-        #batchData: [tokenIdsBatchTensor, typeIdsBatchTensor, masksBatchTensor]
+        #batchData: [tokenIdsBatchTensor, typeIdsBatchTensor, masksBatchTensor, labelsTensor]
         #model forward function input [tokenIdsBatchTensor, typeIdsBatchTensor, masksBatchTensor, taskId]
-        modelInputs = batchData + [taskId]
+        # we are not going to send labels in batch
+        logger.debug('len of batch data {}'.format(len(batchData)))
+        logger.debug('label position in batch data {}'.format(batchMetaData['label_pos']))
+
+        modelInputs = batchData[:batchMetaData['label_pos']]
+        modelInputs += [taskId]
+
+        logger.debug('size of model inputs {}'.format(len(modelInputs)))
         logits = self.network(*modelInputs)
         #calculating task loss
-        taskLoss = 0
+        self.taskLoss = 0
+        logger.debug('size of model output logits {}'.format(logits.size()))
+        logger.debug('size of target {}'.format(target.size()))
         if self.lossClassList[taskId] and (target is not None):
             self.taskLoss = self.lossClassList[taskId](logits, target)
             #tensorboard details
             if self.params['tensorboard']:
                 self.tbTaskId = taskId
-                self.tbTaskLoss = taskLoss.item()
+                self.tbTaskLoss = self.taskLoss.item()
         taskLoss = self.taskLoss / self.params['grad_accumulation_steps']
         taskLoss.backward()
         self.accumulatedStep += 1
@@ -190,6 +211,7 @@ class multiTaskModel:
         #gradients will be updated only when accumulated steps become
         #mentioned number in grad_acc_steps (one global update)
         if self.accumulatedStep == self.params['grad_accumulation_steps']:
+            logging.debug('model updated.')
             if self.params['grad_clip_value'] > 0:
                 torch.nn.utils.clip_grad_norm_(self.network.parameters(),
                                                 self.params['grad_clip_value'])
@@ -208,24 +230,20 @@ class multiTaskModel:
         Also the current optimizer state.
         Along with the current global_steps and epoch which would help
         for resuming training
+        Plus we will save the task parameters object created from the task file.
+        The same object shall be used for this saved model
         '''
         modelStateDict = {k : v.cpu() for k,v in self.network.state_dict().items()}
         toSave = {'model_state_dict' :modelStateDict,
                 'optimizer_state' : self.optimizer.state_dict(),
                 'scheduler_state' : self.scheduler.state_dict(),
-                'global_step' : self.globalStep}
-        torch.save(toSave)
-        logger.info('model saved in {} epoch and {} global step at {}'.format(epoch,
-                                                                            self.globalStep,
-                                                                            savePath))
+                'global_step' : self.globalStep,
+                'task_params' : self.taskParams}
+        torch.save(toSave, savePath)
+        logger.info('model saved in {} global step at {}'.format(self.globalStep, savePath))
 
-    def load_multi_task_model(self, loadPath):
-        savedModel = torch.load(loadPath)
-        self.network.load_state_dict(savedModel['model_state_dict'])
-        self.optimizer.load_state_dict(savedModel['optimizer_state'])
-        self.scheduler.load_state_dict(savedModel['scheduler_state'])
-        self.globalStep = savedModel['global_step']
-        logger.info('saved model loaded with global step {} from {}'.format(self.globalStep,
-                                                                            loadPath))
-
-
+    def load_multi_task_model(self, loadedDict):
+        self.network.load_state_dict(loadedDict['model_state_dict'])
+        self.optimizer.load_state_dict(loadedDict['optimizer_state'])
+        self.scheduler.load_state_dict(loadedDict['scheduler_state'])
+        self.globalStep = loadedDict['global_step']

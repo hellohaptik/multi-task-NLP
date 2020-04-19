@@ -1,5 +1,6 @@
 
 import yaml
+import os
 from collections import OrderedDict
 from data_utils import TaskType, MetricType, ModelType, LossType
 
@@ -43,7 +44,7 @@ class TasksParam:
                 dropoutProbMap[taskName] = 0.05
             # loss map
             if "loss_type" in taskVals:
-                lossMap[taskName] = LossType[taskVals["loss"]]
+                lossMap[taskName] = LossType[taskVals["loss_type"]]
             else:
                 lossMap[taskName] = None
 
@@ -76,7 +77,7 @@ class TasksParam:
         requiredParams = {"class_num", "task_type", "metrics", "loss_type", "file_names"}
         uniqueModel = set()
         uniqueConfig = set()
-        for taskName, taskVals in self.taskDetails:
+        for taskName, taskVals in self.taskDetails.items():
             # check task name
             assert taskName.isalpha(), "only alphabets are allowed in task name. No special chracters/numbers/whitespaces allowed. Task Name: %s" % taskName
 
@@ -87,11 +88,12 @@ class TasksParam:
             try:
                 LossType[taskVals["loss_type"]]
                 ModelType[taskVals["model_type"]]
-                MetricType[taskVals["metrics"]]
-            except KeyError:
+                [MetricType[m] for m in taskVals["metrics"]]
+            except:
                 print("allowed loss {}".format(list(LossType)))
                 print("allowed model type {}".format(list( ModelType)))
                 print("allowed metric type {}".format(list(MetricType)))
+                raise
 
             # check model type, only one model type is allowed for all tasks
             uniqueModel.add(ModelType[taskVals["model_type"]])
@@ -99,12 +101,11 @@ class TasksParam:
                 uniqueConfig.add(taskVals["config_name"])
 
             #check if all data files exists for task
-            for fileName in taskVals['file_names']:
-                assert os.path.exists(fileName)
-
+            #for fileName in taskVals['file_names']:
+                #assert os.path.exists(fileName)
 
         assert len(uniqueModel) == 1, "Only one type of model can be shared across all tasks"
-        assert len(uniqueConfig) > 1, "Model config has to be same across all shared tasks"
+        assert len(uniqueConfig) <= 1, "Model config has to be same across all shared tasks"
 
         #return model type from here
         return list(uniqueModel)[0]

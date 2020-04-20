@@ -2,7 +2,7 @@ import torch
 import torch.nn as nn
 import logging
 from models.dropout import DropoutWrapper
-from data_utils import ModelType, NLP_MODELS, TaskType, LOSSES
+from utils.data_utils import ModelType, NLP_MODELS, TaskType, LOSSES
 from transformers import AdamW, get_linear_schedule_with_warmup
 logger = logging.getLogger("multi_task")
 
@@ -30,10 +30,10 @@ class multiTaskNetwork(nn.Module):
         
         #making headers
         self.allDropouts, self.allHeaders = self.make_multitask_heads()
+        #making pooler layer. Will be used as required
+        self.poolerLayer = self.make_pooler_layer()
         self.initialize_headers()
 
-        #making pooler layer. Will be used as required
-        
     def make_multitask_heads(self):
         '''
         Function to make task specific headers for all tasks.
@@ -64,8 +64,6 @@ class multiTaskNetwork(nn.Module):
     def initialize_headers(self):
         def init_weights(module):
             if isinstance(module, (nn.Linear, nn.Embedding)):
-                # Slightly different from the TF version which uses truncated_normal for initialization
-                # cf https://github.com/pytorch/pytorch/pull/5617
                 module.weight.data.normal_(mean=0.0, std=0.02 * 1.0)
             if isinstance(module, nn.Linear):
                 if module.bias is not None:
@@ -73,18 +71,13 @@ class multiTaskNetwork(nn.Module):
 
         self.apply(init_weights)
     
-    def make_pooler_output(self, hiddenStates):
+    def make_pooler_layer(self):
         '''
         Function to make pooler output from hidden state output in case pooler output is not returned from 
         shared model forward
         '''
         poolerLayer = nn.Linear(self.hiddenSize, self.hiddenSize)
-        if self.params['gpu']:
-            poolerLayer.cuda()
-        poolerOutput = hiddenStates[:, 0]
-        poolerOutput = poolerLayer(poolerOutput)
-        poolerOutput = nn.ReLU()(poolerOutput)
-        return poolerOutput
+        return poolerLayer
 
     def forward(self, tokenIds, typeIds, attentionMasks, taskId):
 
@@ -105,7 +98,12 @@ class multiTaskNetwork(nn.Module):
         # some of the encoder model doesnt output the pooler output. It has to be made from hidden state
         #ouputs in those cases
         sequenceOutput = outputs[0]
-        pooledOutput = outputs[1] if len(outputs) >1 else self.make_pooler_output(sequenceOutput)
+        if len(outputs) > 1:
+            pooledOutput = outputs[1]
+        else:
+            pooledOutput = nn.ReLU()(self.poolerLayer(sequenceOutput[:, 0]))
+
+        #pooledOutput = outputs[1] if len(outputs) >1 else self.make_pooler_output(sequenceOutput)
 
         taskType = self.taskParams.taskTypeMap[self.taskParams.taskIdNameMap[taskId]]
         if taskType == TaskType.Span:
@@ -187,7 +185,6 @@ class multiTaskModel:
         return lossClassList
 
     def _to_cuda(self, tensor):
-        # Function directly taken from MT-DNN 
         if tensor is None: return tensor
 
         if isinstance(tensor, list) or isinstance(tensor, tuple):

@@ -10,8 +10,8 @@ import os
 from datetime import datetime
 from tqdm import tqdm
 from torch.utils.tensorboard import SummaryWriter
-from task_utils import TasksParam
-from data_manager import allTasksDataset, Batcher, batchUtils
+from utils.task_utils import TasksParam
+from models.data_manager import allTasksDataset, Batcher, batchUtils
 from torch.utils.data import Dataset, DataLoader, BatchSampler
 from logger_ import make_logger
 from models.model import multiTaskModel

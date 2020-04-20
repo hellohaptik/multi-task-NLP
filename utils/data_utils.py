@@ -1,5 +1,3 @@
-# Copyright (c) Microsoft. All rights reserved.
-
 from enum import IntEnum
 from transformers import *
 from models.loss import *
@@ -8,7 +6,8 @@ NLP_MODELS = {
     "bert": (BertConfig, BertModel, BertTokenizer, 'bert-base-uncased'),
     "distilbert": (DistilBertConfig, DistilBertModel, DistilBertTokenizer, 'distilbert-base-uncased'),
     "albert": (AlbertConfig, AlbertModel, AlbertTokenizer, 'albert-base-v2'),
-    "roberta": (RobertaConfig, RobertaModel, RobertaTokenizerFast, 'roberta-base')
+    "roberta": (RobertaConfig, RobertaModel, RobertaTokenizer, 'roberta-base'),
+    "xlnet" : (XLNetConfig, XLNetModel, XLNetTokenizer, 'xlnet-base-cased')
 }
 LOSSES = {
     "crossentropyloss" : CrossEntropyLoss,
@@ -20,6 +19,7 @@ class ModelType(IntEnum):
     DISTILBERT = 2
     ALBERT = 3
     ROBERTA = 4
+    XLNET = 5
 
 class TaskType(IntEnum):
     SingleSenClassification = 1

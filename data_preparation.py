@@ -1,11 +1,10 @@
-
 import argparse
 import os
 import json
 import multiprocessing as mp
-from data_utils import TaskType, ModelType, NLP_MODELS
-from task_utils import TasksParam
-from tqdm import tqdm, trange
+from utils.data_utils import TaskType, ModelType, NLP_MODELS
+from utils.task_utils import TasksParam
+from tqdm import tqdm
 
 def load_data(dataPath, dataType):
     '''
@@ -23,12 +22,10 @@ def load_data(dataPath, dataType):
         cols = line.strip("\n").split("\t")
 
         if dataType == TaskType.SingleSenClassification:
-            #print(fields)
             assert len(cols) == 3, "Data is not in Single Sentence Classification format"
             row = {"uid": cols[0], "label": int(cols[1]), "sentenceA": cols[2]}
 
         elif dataType == TaskType.SentencePairClassification:
-            #print(fields)
             assert len(cols) == 4, "Data is not in Sentence Pair Classification format"
             row = {
                 "uid": cols[0], "label": cols[1],"sentenceA": cols[2], "sentenceB": cols[3]}
@@ -208,7 +205,6 @@ def create_data_multithreaded(data, wrtPath, tokenizer, taskType, maxSeqLen, mul
             p = mp.Process(target = create_data_span_prediction, args = (dataChunk, i, tempFilesList, maxSeqLen, tokenizer))
 
         p.start()
-        #print('Process started: ', p)
         processes.append(p)
         
     for pr in processes:

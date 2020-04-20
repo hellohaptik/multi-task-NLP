@@ -1,13 +1,11 @@
-
 import yaml
 import os
 from collections import OrderedDict
-from data_utils import TaskType, MetricType, ModelType, LossType
+from utils.data_utils import TaskType, MetricType, ModelType, LossType
 
 class TasksParam:
     '''
     This class keeps the details mentioned in the tasks yml file as attributes.
-    This class is taken from MT-DNN with some modifications 
     '''
     def __init__(self, taskFilePath):
         # dictioanry holding all the tasks details with 

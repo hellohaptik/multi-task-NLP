@@ -1,7 +1,3 @@
-
-#Variational Dropout, directly taken
-# coding=utf-8
-# Copyright (c) Microsoft. All rights reserved.
 import torch
 import torch.nn as nn
 import torch.nn.functional as F

@@ -2,7 +2,7 @@
 Script to manage datasets for multiple tasks
 '''
 from torch.utils.data import Dataset, DataLoader, BatchSampler
-from data_utils import TaskType, ModelType
+from utils.data_utils import TaskType, ModelType
 import torch
 import random
 import logging
@@ -112,7 +112,6 @@ class Batcher(BatchSampler):
             batch = next(allTasksIters[taskIdx])
             yield [(batchTaskId, sampleIdx) for sampleIdx in batch]
             
-    # method directly taken from MT-DNN for gpu memory pinning.
     def patch_data(self, batch_info, batch_data, gpu = None):
         if gpu:
             for i, part in enumerate(batch_data):
@@ -192,7 +191,6 @@ class batchUtils:
             batchData[2] = masksBatchTensor
         return batchMetaData, batchData
 
-    # method taken from MT-DNN with slight modifications.
     def collate_fn(self, batch):
         '''
         This function will be used by DataLoader to return batches
@@ -207,8 +205,7 @@ class batchUtils:
             assert sample["task"]["task_type"] == taskType
             orgBatch.append(sample["sample"])
             labels.append(int(sample["sample"]["label"]))
-            #print(type(sample["sample"]["label"]))
-        #print(labels)
+            
         batch = orgBatch
         #making tensor batch data
         batchMetaData, batchData = self.make_batch_to_input_tensor(batch)

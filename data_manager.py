@@ -116,14 +116,15 @@ class Batcher(BatchSampler):
     def patch_data(self, batch_info, batch_data, gpu = None):
         if gpu:
             for i, part in enumerate(batch_data):
-                if isinstance(part, torch.Tensor):
-                    batch_data[i] = part.pin_memory().cuda(non_blocking=True)
-                elif isinstance(part, tuple):
-                    batch_data[i] = tuple(sub_part.pin_memory().cuda(non_blocking=True) for sub_part in part)
-                elif isinstance(part, list):
-                    batch_data[i] = [sub_part.pin_memory().cuda(non_blocking=True) for sub_part in part]
-                else:
-                    raise TypeError("unknown batch data type at %s: %s" % (i, part))
+                if part is not None:
+                    if isinstance(part, torch.Tensor):
+                        batch_data[i] = part.pin_memory().cuda(non_blocking=True)
+                    elif isinstance(part, tuple):
+                        batch_data[i] = tuple(sub_part.pin_memory().cuda(non_blocking=True) for sub_part in part)
+                    elif isinstance(part, list):
+                        batch_data[i] = [sub_part.pin_memory().cuda(non_blocking=True) for sub_part in part]
+                    else:
+                        raise TypeError("unknown batch data type at %s: %s" % (i, part))
 
         return batch_info, batch_data
 
@@ -151,13 +152,24 @@ class batchUtils:
         #function to check whether all samples are having the maxSeqLen mentioned
         for samp in batch:
             assert len(samp['token_id']) == self.maxSeqLen, "token_id len doesn't match max seq len"
-            assert len(samp['type_id']) == self.maxSeqLen, "type_id len doesn't match max seq len"
-            assert len(samp['mask']) == self.maxSeqLen, "mask len doesn't match max seq len"
+            # for multiple encoders
+            if samp['type_id'] is not None:
+                assert len(samp['type_id']) == self.maxSeqLen, "type_id len doesn't match max seq len"
+            if samp['mask'] is not None:
+                assert len(samp['mask']) == self.maxSeqLen, "mask len doesn't match max seq len"
 
     def make_batch_to_input_tensor(self, batch):
         #check len in batch data
         self.check_samples_len(batch)
         batchSize = len(batch)
+
+        hasTypeIds = True
+        hasAttnMasks = True
+        if batch[0]['type_id'] is None:
+            hasTypeIds = False
+        if batch[0]['mask'] is None:
+            hasAttnMasks = False
+
         #initializing token id, type id, attention mask tensors for this batch
         tokenIdsBatchTensor = torch.LongTensor(batchSize, self.maxSeqLen).fill_(0)
         typeIdsBatchTensor = torch.LongTensor(batchSize, self.maxSeqLen).fill_(0)
@@ -166,12 +178,18 @@ class batchUtils:
         #fillling in data from sample
         for i, sample in enumerate(batch):
             tokenIdsBatchTensor[i] = torch.LongTensor(sample['token_id'])
-            typeIdsBatchTensor[i] = torch.LongTensor(sample['type_id'])
-            masksBatchTensor[i] = torch.LongTensor(sample['mask'])
+            if hasTypeIds:
+                typeIdsBatchTensor[i] = torch.LongTensor(sample['type_id'])
+            if hasAttnMasks:
+                masksBatchTensor[i] = torch.LongTensor(sample['mask'])
 
         # meta deta will store more things like task id, task type etc. 
         batchMetaData = {"token_id_pos" : 0, "type_id_pos" : 1, "mask_pos" : 2}
-        batchData = [tokenIdsBatchTensor, typeIdsBatchTensor, masksBatchTensor]
+        batchData = [tokenIdsBatchTensor, None, None]  #None, None in case type ids, attnMasks not required by model
+        if hasTypeIds:
+            batchData[1] = typeIdsBatchTensor
+        if hasAttnMasks:
+            batchData[2] = masksBatchTensor
         return batchMetaData, batchData
 
     # method taken from MT-DNN with slight modifications.

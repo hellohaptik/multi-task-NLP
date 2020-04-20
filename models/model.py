@@ -11,7 +11,7 @@ class multiTaskNetwork(nn.Module):
         super(multiTaskNetwork, self).__init__()
         self.params = params
         self.taskParams = self.params['task_params']
-        assert self.taskParams.modelType in ModelType._value2member_map_, "Model Type is not recognized, check in data_utils"
+        assert self.taskParams.modelType in ModelType._value2member_map_, "Model Type is recognized, check in data_utils"
         self.modelType = self.taskParams.modelType
 
         # making shared base encoder model
@@ -31,6 +31,9 @@ class multiTaskNetwork(nn.Module):
         #making headers
         self.allDropouts, self.allHeaders = self.make_multitask_heads()
         self.initialize_headers()
+
+        #making pooler layer. Will be used as required
+        
     def make_multitask_heads(self):
         '''
         Function to make task specific headers for all tasks.
@@ -69,15 +72,41 @@ class multiTaskNetwork(nn.Module):
                     module.bias.data.zero_()
 
         self.apply(init_weights)
+    
+    def make_pooler_output(self, hiddenStates):
+        '''
+        Function to make pooler output from hidden state output in case pooler output is not returned from 
+        shared model forward
+        '''
+        poolerLayer = nn.Linear(self.hiddenSize, self.hiddenSize)
+        if self.params['gpu']:
+            poolerLayer.cuda()
+        poolerOutput = hiddenStates[:, 0]
+        poolerOutput = poolerLayer(poolerOutput)
+        poolerOutput = nn.ReLU()(poolerOutput)
+        return poolerOutput
 
     def forward(self, tokenIds, typeIds, attentionMasks, taskId):
 
         # taking out output from shared encoder. 
-        outputs = self.sharedModel(input_ids = tokenIds,
-                                token_type_ids = typeIds,
-                                attention_mask = attentionMasks)
+        if typeIds is not None and attentionMasks is not None:
+            outputs = self.sharedModel(input_ids = tokenIds,
+                                    token_type_ids = typeIds,
+                                    attention_mask = attentionMasks)
+        elif typeIds is None and attentionMasks is not None:
+            outputs = self.sharedModel(input_ids = tokenIds,
+                                    attention_mask = attentionMasks)
+        elif typeIds is not None and attentionMasks is None:
+            outputs = self.sharedModel(input_ids = tokenIds,
+                                    token_type_ids = typeIds)
+        elif typeIds is None and attentionMasks is None:
+            outputs = self.sharedModel(input_ids = tokenIds)
+        
+        # some of the encoder model doesnt output the pooler output. It has to be made from hidden state
+        #ouputs in those cases
         sequenceOutput = outputs[0]
-        pooledOutput = outputs[1]
+        pooledOutput = outputs[1] if len(outputs) >1 else self.make_pooler_output(sequenceOutput)
+
         taskType = self.taskParams.taskTypeMap[self.taskParams.taskIdNameMap[taskId]]
         if taskType == TaskType.Span:
             #adding dropout layer after shared output
@@ -184,6 +213,7 @@ class multiTaskModel:
         logger.debug('task id for batch {}'.format(taskId))
         #making forward pass
         #batchData: [tokenIdsBatchTensor, typeIdsBatchTensor, masksBatchTensor, labelsTensor]
+        # batchData would have typeIdsBatchTensor or masksBatchTensor as None if the model doesn't support it
         #model forward function input [tokenIdsBatchTensor, typeIdsBatchTensor, masksBatchTensor, taskId]
         # we are not going to send labels in batch
         logger.debug('len of batch data {}'.format(len(batchData)))

@@ -55,7 +55,12 @@ def standard_data_converter(maxSeqLen, tokenizer, senA, senB = None):
     Truncation stategy will truncate the 2nd sentence only (that is passage.
     This would be helpful as we don't want to truncate the query). The strategy can 
     be changed to 'longest_first' or other if required.
+
+    Different model encoders require different inputs. Some encoders doesn't support type_ids, some 
+    doesn't support attention_mask. Hence, to support multiple encoders, typeIds and mask would be intially kept None
     '''
+    typeIds = None
+    mask = None
     if senB:
         out = tokenizer.encode_plus(senA, senB, add_special_tokens = True,
                                     truncation_strategy = 'only_second', max_length = maxSeqLen,
@@ -64,11 +69,13 @@ def standard_data_converter(maxSeqLen, tokenizer, senA, senB = None):
         out = tokenizer.encode_plus(senA, add_special_tokens=True,
                                     truncation_strategy ='only_first',
                                     max_length = maxSeqLen, pad_to_max_length=True)
-                                                         
-    tokenIds = out['input_ids']
-    typeIds = out['token_type_ids']
-    mask = out['attention_mask']
 
+    tokenIds = out['input_ids']
+    if 'token_type_ids' in out.keys():
+        typeIds = out['token_type_ids']
+    if 'attention_mask' in out.keys():
+        mask = out['attention_mask']
+        
     return tokenIds, typeIds, mask
 
 

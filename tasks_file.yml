@@ -1,8 +1,8 @@
 # tasks file to give details for tasks to perform.
 # inspired by mt-dnn library
 querytype:
-    model_type: BERT
-    config_name: bert-base-uncased
+    model_type: ROBERTA
+    config_name: roberta-base
     dropout_prob: 0.05
     metrics:
     - ACC
@@ -16,8 +16,8 @@ querytype:
     - querytype_test.tsv
     
 querytypecontextcombined:
-    model_type: BERT
-    config_name: bert-base-uncased
+    model_type: ROBERTA
+    config_name: roberta-base
     dropout_prob: 0.05
     metrics:
     - ACC

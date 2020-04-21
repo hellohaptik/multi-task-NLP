@@ -2,15 +2,17 @@ import argparse
 import os
 import json
 import multiprocessing as mp
+from keras.preprocessing.sequence import pad_sequences
 from utils.data_utils import TaskType, ModelType, NLP_MODELS
 from utils.task_utils import TasksParam
 from tqdm import tqdm
+from ast import literal_eval
 
-def load_data(dataPath, dataType):
+def load_data(dataPath, taskType):
     '''
-    This fn loads data from tsv file in according to the format in dataType
+    This fn loads data from tsv file in according to the format in taskType
     dataPath - path/name of file to read
-    dataType - Type of task for which format will be set. Can be 
+    taskType - Type of task for which format will be set. Can be 
                 Single Sentence Classification
                 Sentence Pait Classification
                 Span Prediction (MRC)
@@ -21,16 +23,21 @@ def load_data(dataPath, dataType):
     for line in open(dataPath):
         cols = line.strip("\n").split("\t")
 
-        if dataType == TaskType.SingleSenClassification:
+        if taskType == TaskType.SingleSenClassification:
             assert len(cols) == 3, "Data is not in Single Sentence Classification format"
             row = {"uid": cols[0], "label": int(cols[1]), "sentenceA": cols[2]}
 
-        elif dataType == TaskType.SentencePairClassification:
+        elif taskType == TaskType.SentencePairClassification:
             assert len(cols) == 4, "Data is not in Sentence Pair Classification format"
-            row = {
-                "uid": cols[0], "label": cols[1],"sentenceA": cols[2], "sentenceB": cols[3]}
+            row = {"uid": cols[0], "label": cols[1],"sentenceA": cols[2], "sentenceB": cols[3]}
+            
+        elif taskType == TaskType.NER:
+            assert len(cols) == 3, "Data not in NER format"
+            row = {"uid":cols[0], "label":literal_eval(cols[1]), "sentence":literal_eval(cols[2])}
+            assert type(row['label'])==list, "Label should be in list of token labels format in data"
+            assert type(row['sentence'])==list, "Sentence should be in list of token labels format in data"
 
-        elif dataType == TaskType.Span:
+        elif taskType == TaskType.Span:
             assert len(cols) == 4, "Data is not in Span format"
             row = {
                 "uid": cols[0],
@@ -38,7 +45,7 @@ def load_data(dataPath, dataType):
                 "sentenceA": cols[2],
                 "sentenceB": cols[3]}
         else:
-            raise ValueError(dataType)
+            raise ValueError(taskType)
 
         allData.append(row)
 
@@ -76,14 +83,19 @@ def standard_data_converter(maxSeqLen, tokenizer, senA, senB = None):
     return tokenIds, typeIds, mask
 
 
-def create_data_single_sen_classification(data, chunkNumber, tempList, maxSeqLen, tokenizer):
+def create_data_single_sen_classification(data, chunkNumber, tempList, maxSeqLen, tokenizer, labelMap):
     name = 'single_sen_{}.json'.format(str(chunkNumber))
     with open(name, 'w') as wf:
         with tqdm(total = len(data), position = chunkNumber) as progress:
             for idx, sample in enumerate(data):
                 ids = sample['uid']
                 senA = sample['sentenceA']
-                label = sample['label']
+                label = literal_eval(sample['label'])
+                assert type(label) ==int or labelMap is not None, "In Sen Classification, either labels \
+                                                                should be integers or label map should be given in task file"
+                if labelMap is not None:
+                    #make index label according to the map
+                    label = labelMap[sample['label']]
             
                 inputIds, typeIds, inputMask = standard_data_converter(maxSeqLen, tokenizer, senA)
                 features = {
@@ -117,6 +129,73 @@ def create_data_sentence_pair_classification(data, chunkNumber, tempList, maxSeq
                 wf.write('{}\n'.format(json.dumps(features)))
                 progress.update(1)
         tempList.append(name)
+
+def create_data_ner(data, chunkNumber, tempList, maxSeqLen, tokenizer, labelMap):
+    '''
+    Function to create data in NER/Sequence Labelling format.
+    The tsv format expected by this function is 
+    sample['uid] :- unique sample/sentence id
+    sample['sentence'] :- list of the sentence tokens for the sentence eg. ['My', 'name', 'is', 'hello']
+    sample['label] :- list of corresponding tag for token in sentence ed. ['O', 'O', 'O', 'B-PER']
+
+    Here we won't use the standard data converter as format for NER data 
+    is slightly different and required different steps to prepare.
+
+    The '[CLS]' and '[SEP]' also has to be added in label front and end, as they will
+    be present in sentence start and end.
+    Word piece tokenizer breaks a single word into multiple parts if
+    its unknown, we need to add 'X' in label for extra pieces
+
+    '''
+    name = 'ner_{}.json'.format(str(chunkNumber))
+
+    labelMap['[CLS]'] = len(labelMap) - 1
+    labelMap['[SEP]'] = len(labelMap) - 1
+    labelMap['X'] = len(labelMap) - 1
+
+    with open(name, 'w') as wf:
+        for idx, sample in enumerate(data):
+            ids = sample['uid']
+            tempTokens = ['[CLS]']
+            tempLabels = ['[CLS]']
+            for word, label in zip(sample['sentence'], sample['label']):
+                tokens = tokenizer.tokenize(word)
+                for m, token in enumerate(tokens):
+                    tempTokens.append(token)
+                    #only first piece would be marked with label
+                    if m==0:
+                        tempLabels.append(label)
+                    else:
+                        tempLabels.append('X')
+            # adding [SEP] at end
+            tempTokens.append('[SEP]')
+            tempLabels.append('[SEP]')
+
+            out = tokenizer.encode_plus(text = tempTokens, add_special_tokens=False,
+                                    truncation_strategy ='only_first',
+                                    max_length = maxSeqLen, pad_to_max_length=True)
+            typeIds = None
+            inputMask = None
+            tokenIds = out['input_ids']
+            if 'token_type_ids' in out.keys():
+                typeIds = out['token_type_ids']
+            if 'attention_mask' in out.keys():
+                inputMask = out['attention_mask']
+
+            tempLabelsEnc = pad_sequences([labelMap[l] for l in tempLabels], 
+                                maxlen=maxSeqLen, value=labelMap["O"], padding="post",
+                                dtype="long", truncating="post")
+
+            assert len(tempLabelsEnc) == len(tokenIds), "mismatch between processed tokens and labels"
+            features = {
+            'uid': ids,
+            'label': tempLabelsEnc,
+            'token_id': tokenIds,
+            'type_id': typeIds,
+            'mask': inputMask}
+
+            wf.write('{}\n'.format(json.dumps(features)))    
+        tempList.append(name)                 
 
 def create_data_span_prediction(data, chunkNumber, tempList, maxSeqLen, tokenizer):
     name = 'span_prediction_{}.json'.format(str(chunkNumber))
@@ -168,7 +247,7 @@ def create_data_span_prediction(data, chunkNumber, tempList, maxSeqLen, tokenize
             tempList.append(name)
     '''
             
-def create_data_multithreaded(data, wrtPath, tokenizer, taskType, maxSeqLen, multithreaded):
+def create_data_multithreaded(data, wrtPath, tokenizer, taskObj, taskName, maxSeqLen, multithreaded):
     '''
     This function uses multi-processing to create the data in the required format
     for base models as per the task. Utilizing multiple Cores help in processing
@@ -187,6 +266,8 @@ def create_data_multithreaded(data, wrtPath, tokenizer, taskType, maxSeqLen, mul
     Each process will write its chunk into a file. 
     After all processes are done writing, we will combine all the files into one
     '''
+    taskType = taskObj.taskTypeMap[taskName]
+    labelMap = taskObj.labelMap[taskName]
     chunkSize = int(len(data) / (numProcess))
     print('Data Size: ', len(data))
     print('number of threads: ', numProcess)
@@ -196,10 +277,13 @@ def create_data_multithreaded(data, wrtPath, tokenizer, taskType, maxSeqLen, mul
         dataChunk = data[chunkSize*i : chunkSize*(i+1)]
 
         if taskType == TaskType.SingleSenClassification:
-            p = mp.Process(target = create_data_single_sen_classification, args = (dataChunk, i, tempFilesList, maxSeqLen, tokenizer))
+            p = mp.Process(target = create_data_single_sen_classification, args = (dataChunk, i, tempFilesList, maxSeqLen, tokenizer, labelMap=labelMap))
 
         if taskType == TaskType.SentencePairClassification:
             p = mp.Process(target = create_data_sentence_pair_classification, args = (dataChunk, i, tempFilesList, maxSeqLen, tokenizer))
+
+        if taskType == TaskType.NER:
+            p = mp.Process(target = create_data_ner, args = (dataChunk, i, tempFilesList, maxSeqLen, tokenizer, labelMap = labelMap))
         
         if taskType == TaskType.Span:
             p = mp.Process(target = create_data_span_prediction, args = (dataChunk, i, tempFilesList, maxSeqLen, tokenizer))
@@ -254,7 +338,7 @@ def main():
             rows = load_data(os.path.join(args.data_dir, file), tasks.taskTypeMap[taskName])
             wrtFile = os.path.join(dataPath, '{}.json'.format(file.split('.')[0]))
             print('Processing Started...')
-            create_data_multithreaded(rows, wrtFile, tokenizer, tasks.taskTypeMap[taskName],
+            create_data_multithreaded(rows, wrtFile, tokenizer, tasks, taskName,
                                     args.max_seq_len, args.multithreaded)
             print('Data Processing done for {}. File saved at {}'.format(taskName, wrtFile))
             

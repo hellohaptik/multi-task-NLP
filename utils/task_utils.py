@@ -20,6 +20,7 @@ class TasksParam:
         metricsMap = {}
         dropoutProbMap = {}
         lossMap = {}
+        labelMap = {}
         lossWeightMap = {}
         fileNamesMap = {}
 
@@ -31,21 +32,31 @@ class TasksParam:
             metricsMap[taskName] = tuple(MetricType[metric_name] for metric_name in taskVals["metrics"])
             fileNamesMap[taskName] = list(taskVals["file_names"])
 
+            modelConfig = None
+            dropoutProbMap[taskName] = 0.05
+            lossMap[taskName] = None
+            lossWeightMap[taskName] = float(1.0)
+            labelMap[taskName] = None
+
             if "config_name" in taskVals:
                 modelConfig = taskVals["config_name"]
-            else:
-                modelConfig = None
 
             if "dropout_prob" in taskVals:
                 dropoutProbMap[taskName] = taskVals["dropout_prob"]
-            else:
-                dropoutProbMap[taskName] = 0.05
+
             # loss map
             if "loss_type" in taskVals:
                 lossMap[taskName] = LossType[taskVals["loss_type"]]
-            else:
-                lossMap[taskName] = None
 
+            if "label_map" in taskVals:
+                '''
+                Label Map is the list of label names (or tag names in NER) which are
+                present in the data. We make it into dict. This dict will be used to create the label to index
+                map and hence is important to maintain order. It is required in case of 
+                NER. For classification tasks, if the labels are already numeric in data,
+                label map is not required, but if not, then required.
+                '''
+                labelMap[taskName] = {lab:i for i, lab in enumerate(taskVals["label_map"])}
 
             if "loss_weight" in taskVals:
                 '''
@@ -66,6 +77,7 @@ class TasksParam:
         self.fileNamesMap = fileNamesMap
         self.dropoutProbMap = dropoutProbMap
         self.lossMap = lossMap
+        self.labelMap =labelMap
         self.lossWeightMap = lossWeightMap
 
     def validity_checks(self):
@@ -101,6 +113,10 @@ class TasksParam:
             #check if all data files exists for task
             #for fileName in taskVals['file_names']:
                 #assert os.path.exists(fileName)
+            
+            # we definitely require label mapping for NER task
+            if taskVals["task_type"] == 'NER':
+                assert "label_map" in taskVals, "Unique Tags/Labels needs to be mentioned in label_map for NER"
 
         assert len(uniqueModel) == 1, "Only one type of model can be shared across all tasks"
         assert len(uniqueConfig) <= 1, "Model config has to be same across all shared tasks"

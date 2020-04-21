@@ -24,7 +24,8 @@ class ModelType(IntEnum):
 class TaskType(IntEnum):
     SingleSenClassification = 1
     SentencePairClassification = 2
-    Span = 3
+    NER = 3
+    Span = 4
 
 class MetricType(IntEnum):
     #accuracy for classification task

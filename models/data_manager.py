@@ -218,7 +218,7 @@ class batchUtils:
 
             if taskType in (TaskType.SingleSenClassification, TaskType.SentencePairClassification):
                 batchData.append(torch.LongTensor(labels))
-            if taskType == TaskType.Span:
+            elif taskType == TaskType.Span:
                 #in this case we will have a start and end instead of label
                 start = [sample['start_position'] for sample in batch]
                 end = [sample['end_position'] for sample in batch]

@@ -204,7 +204,7 @@ class batchUtils:
             assert sample["task"]["task_id"] == taskId
             assert sample["task"]["task_type"] == taskType
             orgBatch.append(sample["sample"])
-            labels.append(int(sample["sample"]["label"]))
+            labels.append(sample["sample"]["label"])
             
         batch = orgBatch
         #making tensor batch data
@@ -216,13 +216,14 @@ class batchUtils:
         # and in evaluation, it won't go with batch data, rather will keep it with meta data for metrics
         if self.isTrain:
 
-            if taskType in (TaskType.SingleSenClassification, TaskType.SentencePairClassification):
+            if taskType in (TaskType.SingleSenClassification, TaskType.SentencePairClassification, TaskType.NER):
                 batchData.append(torch.LongTensor(labels))
             elif taskType == TaskType.Span:
                 #in this case we will have a start and end instead of label
                 start = [sample['start_position'] for sample in batch]
                 end = [sample['end_position'] for sample in batch]
                 batchData.append((torch.LongTensor(start), torch.LongTensor(end)))
+
             #position for label
             batchMetaData['label_pos'] = len(batchData) - 1
         else:

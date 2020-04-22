@@ -52,7 +52,8 @@ class multiTaskNetwork(nn.Module):
             dropoutValue = self.taskParams.dropoutProbMap[taskName]
             if taskType == TaskType.Span:
                 assert numClasses == 2, " Span required num classes to be 2"
-
+            if taskType == TaskType.NER:
+                numClasses += 3  # extra for '[CLS]', '[SEP]', 'X'
             dropoutLayer = DropoutWrapper(dropoutValue)
             outLayer = nn.Linear(self.hiddenSize, numClasses)
             allDropouts.append(dropoutLayer)
@@ -97,6 +98,7 @@ class multiTaskNetwork(nn.Module):
         
         # some of the encoder model doesnt output the pooler output. It has to be made from hidden state
         #ouputs in those cases
+        # SequenceOutput has shape : (batchSize, maxSeqLen, hiddenSize))
         sequenceOutput = outputs[0]
         if len(outputs) > 1:
             pooledOutput = outputs[1]
@@ -115,14 +117,20 @@ class multiTaskNetwork(nn.Module):
             startLogits, endLogits = finalOutLogits.split(1, dim=1)
             startLogits = startLogits.squeeze(-1)
             endLogits = endLogits.squeeze(-1)
-
             return startLogits, endLogits
+
+        elif taskType == TaskType.NER:
+            sequenceOutput = self.allDropouts[taskId](sequenceOutput)
+            #task specific header. In NER case, sequence output is 3-D, also has maxSeqLen.
+            # but the pytorch liner layer now can hangle this as long as the last dimension is the given dimensions
+            logits = self.allHeaders[taskId](sequenceOutput)
+            return logits
+            
         else:
             #adding dropout layer after shared output
             pooledOutput = self.allDropouts[taskId](pooledOutput)
             #adding task specific header
             logits = self.allHeaders[taskId](pooledOutput)
-            
             return logits
 
 class multiTaskModel:

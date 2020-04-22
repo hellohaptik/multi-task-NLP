@@ -1,0 +1,20 @@
+ner:
+  model_type: BERT
+  dropout_prob: 0.3
+  label_map:
+  - O
+  - B-MISC
+  - I-MISC
+  - B-PER
+  - I-PER
+  - B-ORG
+  - I-ORG
+  - B-LOC
+  - I-LOC
+  metrics:
+  - ACC
+  class_num: 9
+  loss_type: NERLoss
+  task_type: NER
+  file_names:
+  - ner_train.tsv

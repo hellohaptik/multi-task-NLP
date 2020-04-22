@@ -55,8 +55,13 @@ class TasksParam:
                 map and hence is important to maintain order. It is required in case of 
                 NER. For classification tasks, if the labels are already numeric in data,
                 label map is not required, but if not, then required.
+
+                DO NOT ADD ANY EXTRA SPECIAL TOKEN LIKE ['CLS'], 'X', ['SEP'] IN LABEL MAP OR COUNT IN CLASS NUMBER
                 '''
                 labelMap[taskName] = {lab:i for i, lab in enumerate(taskVals["label_map"])}
+                #print(len(labelMap[taskName]))
+                #print(classNumMap[taskName])
+                assert len(labelMap[taskName]) == classNumMap[taskName], "entries in label map doesn't match with class number"
 
             if "loss_weight" in taskVals:
                 '''

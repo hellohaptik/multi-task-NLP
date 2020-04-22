@@ -11,7 +11,8 @@ NLP_MODELS = {
 }
 LOSSES = {
     "crossentropyloss" : CrossEntropyLoss,
-    "spanloss" : SpanLoss
+    "spanloss" : SpanLoss,
+    "nerloss" : NERLoss
 }
 
 class ModelType(IntEnum):
@@ -40,4 +41,5 @@ class MetricType(IntEnum):
 class LossType(IntEnum):
     CrossEntropyLoss = 0
     SpanLoss = 1
+    NERLoss = 2
 

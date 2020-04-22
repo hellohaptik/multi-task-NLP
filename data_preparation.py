@@ -116,7 +116,7 @@ def create_data_sentence_pair_classification(data, chunkNumber, tempList, maxSeq
                 ids = sample['uid']
                 senA = sample['sentenceA']
                 senB = sample['sentenceB']
-                label = sample['label']
+                label = int(sample['label'])
             
                 inputIds, typeIds, inputMask = standard_data_converter(maxSeqLen, tokenizer, senA, senB)
                 features = {
@@ -154,47 +154,49 @@ def create_data_ner(data, chunkNumber, tempList, maxSeqLen, tokenizer, labelMap)
     labelMap['X'] = len(labelMap) - 1
 
     with open(name, 'w') as wf:
-        for idx, sample in enumerate(data):
-            ids = sample['uid']
-            tempTokens = ['[CLS]']
-            tempLabels = ['[CLS]']
-            for word, label in zip(sample['sentence'], sample['label']):
-                tokens = tokenizer.tokenize(word)
-                for m, token in enumerate(tokens):
-                    tempTokens.append(token)
-                    #only first piece would be marked with label
-                    if m==0:
-                        tempLabels.append(label)
-                    else:
-                        tempLabels.append('X')
-            # adding [SEP] at end
-            tempTokens.append('[SEP]')
-            tempLabels.append('[SEP]')
+        with tqdm(total = len(data), position = chunkNumber) as progress:  
+            for idx, sample in enumerate(data):
+                ids = sample['uid']
+                tempTokens = ['[CLS]']
+                tempLabels = ['[CLS]']
+                for word, label in zip(sample['sentence'], sample['label']):
+                    tokens = tokenizer.tokenize(word)
+                    for m, token in enumerate(tokens):
+                        tempTokens.append(token)
+                        #only first piece would be marked with label
+                        if m==0:
+                            tempLabels.append(label)
+                        else:
+                            tempLabels.append('X')
+                # adding [SEP] at end
+                tempTokens.append('[SEP]')
+                tempLabels.append('[SEP]')
 
-            out = tokenizer.encode_plus(text = tempTokens, add_special_tokens=False,
-                                    truncation_strategy ='only_first',
-                                    max_length = maxSeqLen, pad_to_max_length=True)
-            typeIds = None
-            inputMask = None
-            tokenIds = out['input_ids']
-            if 'token_type_ids' in out.keys():
-                typeIds = out['token_type_ids']
-            if 'attention_mask' in out.keys():
-                inputMask = out['attention_mask']
+                out = tokenizer.encode_plus(text = tempTokens, add_special_tokens=False,
+                                        truncation_strategy ='only_first',
+                                        max_length = maxSeqLen, pad_to_max_length=True)
+                typeIds = None
+                inputMask = None
+                tokenIds = out['input_ids']
+                if 'token_type_ids' in out.keys():
+                    typeIds = out['token_type_ids']
+                if 'attention_mask' in out.keys():
+                    inputMask = out['attention_mask']
 
-            tempLabelsEnc = pad_sequences([labelMap[l] for l in tempLabels], 
-                                maxlen=maxSeqLen, value=labelMap["O"], padding="post",
-                                dtype="long", truncating="post")
+                tempLabelsEnc = pad_sequences([ [labelMap[l] for l in tempLabels] ], 
+                                    maxlen=maxSeqLen, value=labelMap["O"], padding="post",
+                                    dtype="long", truncating="post").tolist()[0]
+                #print(tempLabelsEnc)
+                assert len(tempLabelsEnc) == len(tokenIds), "mismatch between processed tokens and labels"
+                features = {
+                'uid': ids,
+                'label': tempLabelsEnc,
+                'token_id': tokenIds,
+                'type_id': typeIds,
+                'mask': inputMask}
 
-            assert len(tempLabelsEnc) == len(tokenIds), "mismatch between processed tokens and labels"
-            features = {
-            'uid': ids,
-            'label': tempLabelsEnc,
-            'token_id': tokenIds,
-            'type_id': typeIds,
-            'mask': inputMask}
-
-            wf.write('{}\n'.format(json.dumps(features)))    
+                wf.write('{}\n'.format(json.dumps(features)))  
+                progress.update(1)  
         tempList.append(name)                 
 
 def create_data_span_prediction(data, chunkNumber, tempList, maxSeqLen, tokenizer):
@@ -205,6 +207,7 @@ def create_data_span_prediction(data, chunkNumber, tempList, maxSeqLen, tokenize
         for example_index, sample in enumerate(data):
             ids = sample['uid']
             doc = sample['sentenceA']
+            
             query = sample['sentenceB']
             label = sample['label']
             doc_tokens, cw_map = squad_utils.token_doc(doc)
@@ -277,13 +280,13 @@ def create_data_multithreaded(data, wrtPath, tokenizer, taskObj, taskName, maxSe
         dataChunk = data[chunkSize*i : chunkSize*(i+1)]
 
         if taskType == TaskType.SingleSenClassification:
-            p = mp.Process(target = create_data_single_sen_classification, args = (dataChunk, i, tempFilesList, maxSeqLen, tokenizer, labelMap=labelMap))
+            p = mp.Process(target = create_data_single_sen_classification, args = (dataChunk, i, tempFilesList, maxSeqLen, tokenizer, labelMap))
 
         if taskType == TaskType.SentencePairClassification:
             p = mp.Process(target = create_data_sentence_pair_classification, args = (dataChunk, i, tempFilesList, maxSeqLen, tokenizer))
 
         if taskType == TaskType.NER:
-            p = mp.Process(target = create_data_ner, args = (dataChunk, i, tempFilesList, maxSeqLen, tokenizer, labelMap = labelMap))
+            p = mp.Process(target = create_data_ner, args = (dataChunk, i, tempFilesList, maxSeqLen, tokenizer, labelMap))
         
         if taskType == TaskType.Span:
             p = mp.Process(target = create_data_span_prediction, args = (dataChunk, i, tempFilesList, maxSeqLen, tokenizer))

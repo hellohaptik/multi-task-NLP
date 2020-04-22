@@ -144,7 +144,7 @@ def main():
 
     allParams['task_params'] = taskParams
     allParams['gpu'] = torch.cuda.is_available()
-    #logger.info('task parameters:\n {}'.format(taskParams.taskDetails))
+    logger.info('task parameters:\n {}'.format(taskParams.taskDetails))
 
     if args.tensorboard:
         tensorboard = SummaryWriter(log_dir = os.path.join(logDir, 'tb_logs'))

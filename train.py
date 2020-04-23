@@ -7,6 +7,7 @@ import numpy as np
 import logging
 import torch
 import os
+import math
 from datetime import datetime
 from tqdm import tqdm
 from torch.utils.tensorboard import SummaryWriter
@@ -29,9 +30,9 @@ def make_arguments(parser):
                         help='batch size to use for training')
     parser.add_argument('--eval_batch_size', type = int, default = 32,
                         help = "batch size to use during evaluation")
-    parser.add_argument('--eval_while_train', type = bool, default= False,
+    parser.add_argument('--eval_while_train', type = bool, default= True,
                         help = "if evaluation on dev set is required during training.")
-    parser.add_argument('--test_while_train', type = bool, default = False,
+    parser.add_argument('--test_while_train', type = bool, default = True,
                         help = "if evaluation on test set is required during training.")
     parser.add_argument('--grad_accumulation_steps', type =int, default = 1,
                         help = "number of steps to accumulate gradients before update")
@@ -113,7 +114,12 @@ def make_data_handlers(taskParams, mode, isTrain, gpu):
         allTaskslist.append(taskDict)
 
     allData = allTasksDataset(allTaskslist)
-    batchSampler = Batcher(allData, batchSize=args.train_batch_size, seed = args.seed)
+    if mode == "train":
+        batchSize = args.train_batch_size
+    else:
+        batchSize = args.eval_batch_size
+
+    batchSampler = Batcher(allData, batchSize=batchSize, seed = args.seed)
     batchSamplerUtils = batchUtils(isTrain = isTrain, modelType= taskParams.modelType,
                                   maxSeqLen = args.max_seq_len)
     multiTaskDataLoader = DataLoader(allData, batch_sampler = batchSampler,
@@ -121,6 +127,33 @@ def make_data_handlers(taskParams, mode, isTrain, gpu):
                                 pin_memory=gpu)
 
     return allData, batchSampler, multiTaskDataLoader
+
+def evaluate(dataSet, batchSampler, dataLoader, model, gpu):
+    '''
+    Function to make predictions on the given data. The provided data can be multiple tasks or single task
+    It will seprate out the predictions based on task id for metrics evaluation
+    '''
+    numTasks = len(dataSet.taskDict)
+    numStep = math.ceil(len(dataLoader)/args.eval_batch_size)
+    allPreds = [[]*numTasks]
+    allLabels = [[]*numTasks]
+    allScores = [[]*numTasks]
+    allIds = [[]*numTasks]
+
+    for i, (batchMetaData, batchData) in tqdm(enumerate(dataLoader),total=numStep):
+
+        batchMetaData, batchData = batchSampler.patch_data(batchMetaData,batchData, gpu = gpu)
+        prediction, logits = model.predict_step(batchMetaData, batchData)
+
+        batchTaskId = int(batchMetaData['task_id'])
+        orgLabels = batchMetaData['label']
+
+        allPreds[batchTaskId].extend(prediction)
+        allLabels[batchTaskId].extend(orgLabels)
+        allScores[batchTaskId].extend(logits)
+        allIds[batchTaskId].extend(batchMetaData['uids'])
+    return allPreds, allScores, allLabels
+
 
 def main():
     allParams = vars(args)
@@ -170,9 +203,10 @@ def main():
                                                                                 "test", isTrain=False,
                                                                                 gpu=allParams['gpu'])
     #making multi-task model
-    allParams['num_train_steps'] = len(multiTaskDataLoaderTrain) *args.epochs // args.grad_accumulation_steps
+    allParams['num_train_steps'] = math.ceil(len(multiTaskDataLoaderTrain)/args.train_batch_size) *args.epochs // args.grad_accumulation_steps
     allParams['warmup_steps'] = args.num_of_warmup_steps
-
+    print("NUM TRAIN STEPS: ", allParams['num_train_steps'])
+    print("len of dataloader: ", len(multiTaskDataLoaderTrain))
     logger.info("Making multi-task model...")
     model = multiTaskModel(allParams)
     #logger.info('################ Network ###################')
@@ -222,9 +256,17 @@ def main():
                                                                                         model.globalStep))
                 model.save_multi_task_model(savePath)
 
-    #saving model after epoch
-    savePath = os.path.join(args.out_dir, 'multi_task_model_{}_{}.pt'.format(epoch, model.globalStep))  
-    model.save_multi_task_model(savePath)
+        #saving model after epoch
+        savePath = os.path.join(args.out_dir, 'multi_task_model_{}_{}.pt'.format(epoch, model.globalStep))  
+        model.save_multi_task_model(savePath)
+
+        if args.eval_while_train:
+            logger.info("Running Evaluation on dev...")
+            evaluate(allDataDev, BatchSamplerDev, multiTaskDataLoaderDev, model, gpu=allParams['gpu'])
+
+        if args.test_while_train:
+            logger.info("Running Evaluation on test...")
+            evaluate(allDataTest, BatchSamplerTest, multiTaskDataLoaderTest, model,gpu=allParams['gpu'])
 
 if __name__ == "__main__":
     main()

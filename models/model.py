@@ -1,6 +1,7 @@
 import torch
 import torch.nn as nn
 import logging
+import numpy as np
 from models.dropout import DropoutWrapper
 from utils.data_utils import ModelType, NLP_MODELS, TaskType, LOSSES
 from transformers import AdamW, get_linear_schedule_with_warmup
@@ -213,7 +214,6 @@ class multiTaskModel:
         if self.params['gpu']:
             target = self._to_cuda(target)
 
-        taskType = batchMetaData['task_type']
         taskId = batchMetaData['task_id']
         logger.debug('task id for batch {}'.format(taskId))
         #making forward pass
@@ -258,6 +258,52 @@ class multiTaskModel:
             self.globalStep += 1
             #resetting accumulated steps
             self.accumulatedStep = 0
+
+    def predict_step(self, batchMetaData, batchData):
+        '''
+        Function for predicting on a batch from model. Will be used for inference and dev/test set.
+        The labels in case of eval (predictions) are kept in batchMetaData and are not Tensors
+        '''
+        self.network.eval()
+        taskId = batchMetaData['task_id']
+        taskType = batchMetaData['task_type']
+        modelInputs = batchData + [taskId]
+        logger.debug("Pred model input length: {}".format(len(modelInputs)))
+
+        #making forward pass to get logits
+        outLogits = self.network(*modelInputs)
+        logger.debug("Pred model logits shape: {}".format(outLogits.size()))
+        #process logits as per task type
+        if taskType in (TaskType.SingleSenClassification, TaskType.SentencePairClassification):
+            outLogits = nn.functional.softmax(outLogits, dim = 1).data.cpu().numpy()
+            predictedClass = np.argmax(outLogits, axis = 1)
+            logger.debug("Final Predictions shape after argmx: {}".format(predictedClass.shape))
+            predictedClass = predictedClass.tolist()
+            return predictedClass, outLogits
+
+        if taskType == TaskType.NER:
+            outLogits = nn.functional.softmax(outLogits, dim = 2).data.cpu().numpy()
+            #shape of outlogits now (batchSize, maxSeqLen, classNum)
+            predicted = np.argmax(outLogits, axis = 2)
+            #shape of predicted now (batchSize, maxSeqLen)
+            logger.debug("Final Predictions shape after argmx: {}".format(predicted.shape))
+            predicted = predicted.tolist()
+
+            # get the attention masks, we need to discard the predictions made for extra padding
+            attnMasksBatch = batchData[2]
+            predictedTags = []
+            if attnMasksBatch is not None:
+                #shape of attention Masks (batchSize, maxSeqLen)
+                actualLengths = attnMasksBatch.cpu().numpy().sum(axis = 1).tolist()
+                for i, pred in enumerate(predicted):
+                    predictedTags.append( pred[:actualLengths[i]] )
+                
+                return predictedTags, outLogits
+            else:
+                return predicted, outLogits
+        else:
+            raise ValueError("Task type for prediction batch not known {}".format(taskType))
+
 
     def save_multi_task_model(self, savePath):
         '''

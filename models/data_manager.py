@@ -48,7 +48,7 @@ class allTasksDataset(Dataset):
     # some standard functions which need to be overridden from Dataset
     #class for item, len etc..
     def __len__(self):
-        return len(self.allTasksData)
+        return sum(len(v) for k, v in self.allTasksData.items())
 
     # get item will be used to fetch a sample when required for the corresponding task id. 
     def __getitem__(self, idx):
@@ -229,6 +229,7 @@ class batchUtils:
         else:
             # for test/eval labels won't be added into batch, but kept in meta data
             # so metric evaluation can be done
+            #batchData :- [tokenIdsBatchTensor, typeIdsBatchTensor, MasksBatchTensor]
             batchMetaData['label'] = labels
             if taskType == TaskType.Span:
                 batchMetaData['token_to_orig_map'] = [sample['token_to_orig_map'] for sample in batch]

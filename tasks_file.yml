@@ -1,23 +1,26 @@
-# tasks file to give details for tasks to perform.
-# inspired by mt-dnn library
-querytype:
-    model_type: ROBERTA
-    config_name: roberta-base
-    dropout_prob: 0.05
-    metrics:
-    - ACC
-    - MCC
-    loss_type: CrossEntropyLoss
-    class_num: 5
-    task_type: SingleSenClassification
-    file_names:
-    - querytype_train.tsv
-    - querytype_dev.tsv
-    - querytype_test.tsv
-    
+ner:
+  model_type: BERT
+  dropout_prob: 0.3
+  label_map:
+  - O
+  - B-MISC
+  - I-MISC
+  - B-PER
+  - I-PER
+  - B-ORG
+  - I-ORG
+  - B-LOC
+  - I-LOC
+  metrics:
+  - ACC
+  class_num: 9
+  loss_type: NERLoss
+  task_type: NER
+  file_names:
+  - ner_train.tsv
 querytypecontextcombined:
-    model_type: ROBERTA
-    config_name: roberta-base
+    model_type: XLNET
+    config_name: xlnet-base-cased
     dropout_prob: 0.05
     metrics:
     - ACC

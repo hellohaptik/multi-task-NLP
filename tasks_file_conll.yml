@@ -1,0 +1,31 @@
+conllner:
+  model_type: BERT
+  config_name: bert-large-uncased
+  dropout_prob: 0.05
+  label_map_or_file: data/ner_coNLL_train_label_map.joblib
+  metrics:
+  - seq_f1
+  - seq_precision
+  - seq_recall
+  loss_type: NERLoss
+  task_type: NER
+  file_names:
+  - ner_coNLL_train.tsv
+  - ner_coNLL_testa.tsv
+  - ner_coNLL_testb.tsv
+
+conllpos:
+    model_type: BERT
+    config_name: bert-large-uncased
+    dropout_prob: 0.05
+    label_map_or_file: data/pos_coNLL_train_label_map.joblib
+    metrics:
+    - seq_f1
+    - seq_precision
+    - seq_recall
+    loss_type: NERLoss
+    task_type: NER
+    file_names:
+    - pos_coNLL_train.tsv
+    - pos_coNLL_testa.tsv
+    - pos_coNLL_testb.tsv

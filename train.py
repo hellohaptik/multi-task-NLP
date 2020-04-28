@@ -4,6 +4,7 @@ Final Training script to run traininig for multi-task
 import argparse
 import random
 import numpy as np
+import pandas as pd
 import logging
 import torch
 import os
@@ -11,7 +12,8 @@ import math
 from datetime import datetime
 from tqdm import tqdm
 from torch.utils.tensorboard import SummaryWriter
-from utils.task_utils import TasksParam
+from utils.task_utils import TasksParam   
+from utils.data_utils import METRICS, TaskType
 from models.data_manager import allTasksDataset, Batcher, batchUtils
 from torch.utils.data import Dataset, DataLoader, BatchSampler
 from logger_ import make_logger
@@ -26,6 +28,12 @@ def make_arguments(parser):
                         help = 'path to save the model')
     parser.add_argument('--epochs', type = int, required=True,
                         help = 'number of epochs to train')
+    parser.add_argument('--finetune', type = bool, default= False,
+                        help = "If only the shared model is to be loaded with saved pre-trained multi-task model.\
+                            In this case, you can specify your own tasks with task file and use the pre-trained shared model\
+                            to finetune upon.")
+    parser.add_argument('--freeze_shared_model', type = bool, default=False,
+                        help = "True to freeze the loaded pre-trained shared model and only finetune task specific headers")
     parser.add_argument('--train_batch_size', type = int, default=8,
                         help='batch size to use for training')
     parser.add_argument('--eval_batch_size', type = int, default = 32,
@@ -72,7 +80,7 @@ if not os.path.isdir(logDir):
     os.makedirs(logDir)
 
 logger = make_logger(name = "multi_task", debugMode=args.debug_mode,
-                    logFile=os.path.join(logDir, args.log_file))
+                    logFile=os.path.join(logDir, args.log_file), silent=False)
 logger.info("logger created.")
                     
 #setting seed
@@ -128,32 +136,95 @@ def make_data_handlers(taskParams, mode, isTrain, gpu):
 
     return allData, batchSampler, multiTaskDataLoader
 
-def evaluate(dataSet, batchSampler, dataLoader, model, gpu):
+def evaluate(dataSet, batchSampler, dataLoader, taskParams,
+            model, gpu, hasLabels, needMetrics, wrtPredPath = None):
     '''
     Function to make predictions on the given data. The provided data can be multiple tasks or single task
     It will seprate out the predictions based on task id for metrics evaluation
     '''
     numTasks = len(dataSet.taskDict)
     numStep = math.ceil(len(dataLoader)/args.eval_batch_size)
-    allPreds = [[]*numTasks]
-    allLabels = [[]*numTasks]
-    allScores = [[]*numTasks]
-    allIds = [[]*numTasks]
+    allPreds = [[] for _ in range(numTasks)]
+    if hasLabels:
+        allLabels = [[] for _ in range(numTasks)]
+    allScores = [[] for _ in range(numTasks)]
+    allIds = [[] for _ in range(numTasks)]
 
-    for i, (batchMetaData, batchData) in tqdm(enumerate(dataLoader),total=numStep):
+    for batchMetaData, batchData in tqdm(dataLoader, total =numStep):
 
         batchMetaData, batchData = batchSampler.patch_data(batchMetaData,batchData, gpu = gpu)
         prediction, logits = model.predict_step(batchMetaData, batchData)
 
+        logger.debug("predictions in eval: {}".format(prediction))       
         batchTaskId = int(batchMetaData['task_id'])
-        orgLabels = batchMetaData['label']
+        if hasLabels:
+            orgLabels = batchMetaData['label']
+            allLabels[batchTaskId].extend(orgLabels)
 
+        logger.debug("batch task id in eval: {}".format(batchTaskId))
         allPreds[batchTaskId].extend(prediction)
-        allLabels[batchTaskId].extend(orgLabels)
         allScores[batchTaskId].extend(logits)
         allIds[batchTaskId].extend(batchMetaData['uids'])
-    return allPreds, allScores, allLabels
 
+    if needMetrics and hasLabels:
+        # fetch metrics from task id
+        for i in range(len(allPreds)):
+            taskName = taskParams.taskIdNameMap[i]
+            metrics = taskParams.metricsMap[taskName]
+            if metrics is None:
+                logger.info("No metrics are provided in task params (file)")
+                continue
+
+            taskType = taskParams.taskTypeMap[taskName]
+            if taskType == TaskType.NER:
+                # NER requires label clipping. We''ve already clipped our predictions
+                #using attn Masks, so we will clip labels to predictions len
+                for j, (p, l) in enumerate(zip(allPreds[i], allLabels[i])):
+                    allLabels[i][j] = l[:len(p)]
+
+                # Also we need to remove the extra tokens from predictions based on labels
+                labMap = taskParams.labelMap[taskName]
+                print(labMap)
+                labMapRev = {v:k for k,v in labMap.items()}
+
+                allPreds[i] = [ [ labMapRev[int(p)] for p in pp ] for pp in allPreds[i] ]
+                allLabels[i] = [ [labMapRev[int(l)] for l in ll] for ll in allLabels[i] ]
+
+                newPreds = []
+                newLabels = []
+                for m, samp in enumerate(allLabels[i]):
+                    Preds = []
+                    Labels = []
+                    for n, ele in enumerate(samp):
+                        #print(ele)
+                        if ele != '[CLS]' and ele != '[SEP]' and ele != 'X':
+                            #print('inside')
+                            Preds.append(allPreds[i][m][n])
+                            Labels.append(ele)
+                            #del allLabels[i][m][n]
+                            #del allPreds[i][m][n]
+                    newPreds.append(Preds)
+                    newLabels.append(Labels)
+                
+                allLabels[i] = newLabels
+                allPreds[i] = newPreds
+
+            logger.info("********** {} Evaluation************\n".format(taskName))
+            for m in metrics:
+                metricVal = METRICS[m](allLabels[i], allPreds[i])
+                logger.info("{} : {}".format(m, metricVal))
+
+    if wrtPredPath:
+        for i in range(len(allPreds)):
+            taskName = taskParams.taskIdNameMap[i]
+            if hasLabels:
+                df = pd.DataFrame({"uid" : allIds[i], "prediction" : allPreds[i], "label" : allLabels[i]})
+            else:
+                df = pd.DataFrame({"uid" : allIds[i], "prediction" : allPreds[i]})
+
+            savePath = os.path.join(args.out_dir, "{}_{}".format(taskName, wrtPredPath))
+            df.to_csv(savePath, sep = "\t", index = False)
+            logger.info("Predictions File saved at {}".format(savePath))
 
 def main():
     allParams = vars(args)
@@ -162,18 +233,32 @@ def main():
         assert os.path.exists(args.load_saved_model), "saved model not present at {}".format(args.load_saved_model)
         loadedDict = torch.load(args.load_saved_model)
         logger.info('Saved Model loaded from {}'.format(args.load_saved_model))
-        logger.info('Any changes made to task file after saving this model shall be ignored')
-        '''
-        NOTE : -
-        taskParams used with this saved model must also be stored. THE SAVED TASK PARAMS 
-        SHALL BE USED HERE TO AVOID ANY DISCREPENCIES/CHANGES IN THE TASK FILE.
-        Hence, if changes are made to task file after saving this model, they shall be ignored
-        '''
-        taskParams = loadedDict['task_params']
-        logger.info('Task Params loaded from saved model.')
+
+        if args.finetune is True:
+            '''
+            NOTE :- 
+            In finetune mode, only the weights from the shared encoder (pre-trained) from the model will be used. The headers
+            over the model will be made from the task file. You can further finetune for training the entire model.
+            Freezing of the pre-trained moddel is also possible with argument 
+            '''
+            logger.info('In Finetune model. Only shared Encoder weights will be loaded from {}'.format(args.load_saved_model))
+            logger.info('Task specific headers will be made according to task file')
+            taskParams = TasksParam(args.task_file)
+
+        else:
+            '''
+            NOTE : -
+            taskParams used with this saved model must also be stored. THE SAVED TASK PARAMS 
+            SHALL BE USED HERE TO AVOID ANY DISCREPENCIES/CHANGES IN THE TASK FILE.
+            Hence, if changes are made to task file after saving this model, they shall be ignored
+            '''
+            taskParams = loadedDict['task_params']
+            logger.info('Task Params loaded from saved model.')
+            logger.info('Any changes made to task file after saving this model shall be ignored')
     else:
         taskParams = TasksParam(args.task_file)
         logger.info("Task params object created from task file...")
+        
 
     allParams['task_params'] = taskParams
     allParams['gpu'] = torch.cuda.is_available()
@@ -213,15 +298,19 @@ def main():
     #logger.info('\n{}\n'.format(model.network))
 
     if args.load_saved_model:
-        model.load_multi_task_model(loadedDict)
-        logger.info('saved model loaded with global step {} from {}'.format(model.globalStep,
+        if args.finetune is True:
+            model.load_shared_model(loadedDict, args.freeze_shared_model)
+            logger.info('shared model loaded for finetune from {}'.format(args.load_saved_model))
+        else:
+            model.load_multi_task_model(loadedDict)
+            logger.info('saved model loaded with global step {} from {}'.format(model.globalStep,
                                                                             args.load_saved_model))
         if args.resume_train:
             logger.info("Resuming training from global step {}. Steps before it will be skipped".format(model.globalStep))
 
     # training 
     resCnt = 0
-    for epoch in tqdm(range(args.epochs)):
+    for epoch in tqdm(range(args.epochs), total = args.epochs):
         logger.info('\n####################### EPOCH {} ###################\n'.format(epoch))
         totalEpochLoss = 0
         for i, (batchMetaData, batchData) in enumerate(multiTaskDataLoaderTrain):
@@ -261,12 +350,17 @@ def main():
         model.save_multi_task_model(savePath)
 
         if args.eval_while_train:
-            logger.info("Running Evaluation on dev...")
-            evaluate(allDataDev, BatchSamplerDev, multiTaskDataLoaderDev, model, gpu=allParams['gpu'])
+            logger.info("\nRunning Evaluation on dev...")
+            with torch.no_grad():
+                evaluate(allDataDev, BatchSamplerDev, multiTaskDataLoaderDev, taskParams,
+                        model, gpu=allParams['gpu'], needMetrics=True, hasLabels=True)
 
         if args.test_while_train:
-            logger.info("Running Evaluation on test...")
-            evaluate(allDataTest, BatchSamplerTest, multiTaskDataLoaderTest, model,gpu=allParams['gpu'])
+            logger.info("\nRunning Evaluation on test...")
+            wrtPredpath = "test_predictions_{}.tsv".format(epoch)
+            with torch.no_grad():
+                evaluate(allDataTest, BatchSamplerTest, multiTaskDataLoaderTest, taskParams,
+                        model,gpu=allParams['gpu'], needMetrics=True, hasLabels=True, wrtPredPath=wrtPredpath)
 
 if __name__ == "__main__":
     main()

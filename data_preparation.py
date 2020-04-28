@@ -8,7 +8,7 @@ from utils.task_utils import TasksParam
 from tqdm import tqdm
 from ast import literal_eval
 
-def load_data(dataPath, taskType):
+def load_data(dataPath, taskType, hasLabels):
     '''
     This fn loads data from tsv file in according to the format in taskType
     dataPath - path/name of file to read
@@ -16,6 +16,8 @@ def load_data(dataPath, taskType):
                 Single Sentence Classification
                 Sentence Pait Classification
                 Span Prediction (MRC)
+    hasLabels - Whether or not the file has labels. When hasLabels is not True, it will
+                make dummy labels
 
     Function taken from MT_DNN with modification
     '''
@@ -24,17 +26,27 @@ def load_data(dataPath, taskType):
         cols = line.strip("\n").split("\t")
 
         if taskType == TaskType.SingleSenClassification:
-            assert len(cols) == 3, "Data is not in Single Sentence Classification format"
-            row = {"uid": cols[0], "label": int(cols[1]), "sentenceA": cols[2]}
+            if hasLabels is True:
+                assert len(cols) == 3, "Data is not in Single Sentence Classification format"
+                row = {"uid": cols[0], "label": cols[1], "sentenceA": cols[2]}
+            else:
+                row = {"uid": cols[0], "label": '-1', "sentenceA": cols[1]}
 
         elif taskType == TaskType.SentencePairClassification:
-            assert len(cols) == 4, "Data is not in Sentence Pair Classification format"
-            row = {"uid": cols[0], "label": cols[1],"sentenceA": cols[2], "sentenceB": cols[3]}
+            if hasLabels is True:
+                assert len(cols) == 4, "Data is not in Sentence Pair Classification format"
+                row = {"uid": cols[0], "label": cols[1],"sentenceA": cols[2], "sentenceB": cols[3]}
+            else:
+                row = {"uid": cols[0], "label": '-1', "sentenceA": cols[1], "sentenceB": cols[2]}
             
         elif taskType == TaskType.NER:
-            assert len(cols) == 3, "Data not in NER format"
-            row = {"uid":cols[0], "label":literal_eval(cols[1]), "sentence":literal_eval(cols[2])}
-            assert type(row['label'])==list, "Label should be in list of token labels format in data"
+            #print(hasLabels)
+            if hasLabels is True:
+                assert len(cols) == 3, "Data not in NER format"
+                row = {"uid":cols[0], "label":literal_eval(cols[1]), "sentence":literal_eval(cols[2])}
+                assert type(row['label'])==list, "Label should be in list of token labels format in data"
+            else:
+                row = {"uid":cols[0], "label": ["O"]*len(literal_eval(cols[1])), "sentence":literal_eval(cols[1])}
             assert type(row['sentence'])==list, "Sentence should be in list of token labels format in data"
 
         elif taskType == TaskType.Span:
@@ -90,10 +102,10 @@ def create_data_single_sen_classification(data, chunkNumber, tempList, maxSeqLen
             for idx, sample in enumerate(data):
                 ids = sample['uid']
                 senA = sample['sentenceA']
-                label = literal_eval(sample['label'])
-                assert type(label) ==int or labelMap is not None, "In Sen Classification, either labels \
+                label = sample['label']
+                assert label.isnumeric() or labelMap is not None, "In Sen Classification, either labels \
                                                                 should be integers or label map should be given in task file"
-                if labelMap is not None:
+                if labelMap is not None and not label.isnumeric():
                     #make index label according to the map
                     label = labelMap[sample['label']]
             
@@ -148,10 +160,6 @@ def create_data_ner(data, chunkNumber, tempList, maxSeqLen, tokenizer, labelMap)
 
     '''
     name = 'ner_{}.json'.format(str(chunkNumber))
-
-    labelMap['[CLS]'] = len(labelMap) - 1
-    labelMap['[SEP]'] = len(labelMap) - 1
-    labelMap['X'] = len(labelMap) - 1
 
     with open(name, 'w') as wf:
         with tqdm(total = len(data), position = chunkNumber) as progress:  
@@ -271,6 +279,7 @@ def create_data_multithreaded(data, wrtPath, tokenizer, taskObj, taskName, maxSe
     '''
     taskType = taskObj.taskTypeMap[taskName]
     labelMap = taskObj.labelMap[taskName]
+
     chunkSize = int(len(data) / (numProcess))
     print('Data Size: ', len(data))
     print('number of threads: ', numProcess)
@@ -317,11 +326,14 @@ def main():
                         help = "max sequence length for making data for model")
     parser.add_argument('--multithreaded', type = bool, default = True,
                         help = "use multiple threads for processing data with speed")
+    parser.add_argument('--has_labels', type=bool, default=True,
+                        help = "If labels are not present in file then False. \
+                            To be used when preparing data for inference ")
     args = parser.parse_args()
-
     tasks = TasksParam(args.task_file)
     print('task object created from task file...')
     assert os.path.exists(args.data_dir), "data dir doesnt exist"
+
     modelName = tasks.modelType.name.lower()
     configClass, modelClass, tokenizerClass, defaultName = NLP_MODELS[modelName]
     configName = tasks.modelConfig
@@ -333,12 +345,13 @@ def main():
     print('{} model tokenizer loaded for config {}'.format(modelName, configName))
     dataPath = os.path.join(args.data_dir, '{}_prepared_data'.format(configName))
     if not os.path.exists(dataPath):
-        os.mkdir(dataPath)
+        os.makedirs(dataPath)
 
     for taskId, taskName in tasks.taskIdNameMap.items():
         for file in tasks.fileNamesMap[taskName]:
             print('Loading raw data for task {} from {}'.format(taskName, os.path.join(args.data_dir, file)))
-            rows = load_data(os.path.join(args.data_dir, file), tasks.taskTypeMap[taskName])
+            rows = load_data(os.path.join(args.data_dir, file), tasks.taskTypeMap[taskName],
+                            hasLabels = args.has_labels)
             wrtFile = os.path.join(dataPath, '{}.json'.format(file.split('.')[0]))
             print('Processing Started...')
             create_data_multithreaded(rows, wrtFile, tokenizer, tasks, taskName,

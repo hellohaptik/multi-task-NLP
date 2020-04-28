@@ -174,7 +174,7 @@ class multiTaskModel:
     def make_optimizer(self, numTrainSteps, lr = 2e-5, eps = 1e-8, warmupSteps=0):
         # we will use AdamW optimizer from huggingface transformers. This optimizer is 
         #widely used with BERT. It is modified form of Adam which is used in Tensorflow 
-        #implementations
+        #implementations        
         optimizer = AdamW(self.network.parameters(), lr=lr, eps = eps)
 
         # lr scheduler
@@ -328,3 +328,17 @@ class multiTaskModel:
         self.optimizer.load_state_dict(loadedDict['optimizer_state'])
         self.scheduler.load_state_dict(loadedDict['scheduler_state'])
         self.globalStep = loadedDict['global_step']
+
+    def load_shared_model(self, loadedDict, freeze):
+        #filling in weights from saved shared model to model
+        pretrainedDict = loadedDict['model_state_dict']
+        modelDict = self.network.state_dict()
+        updateDict = {k :pretrainedDict[k] for k in modelDict if k.startswith('sharedModel')}
+        modelDict.update(updateDict)
+        self.network.load_state_dict(modelDict)
+
+        if freeze is True:
+            for name, param in self.network.named_parameters():
+                if name.startswith('sharedModel'):
+                    param.requires_grad = False
+            logger.info("shared model weights frozen for finetune..")

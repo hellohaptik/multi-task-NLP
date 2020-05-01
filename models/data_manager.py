@@ -26,6 +26,8 @@ class allTasksDataset(Dataset):
             logger.info('Reading data from file {}'.format(readPath))
             taskData = []
             for i, line in enumerate(file):
+                #if i >=200:
+                    #continue
                 sample = json.loads(line)
                 taskData.append(sample)
         return taskData

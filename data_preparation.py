@@ -30,14 +30,14 @@ def load_data(dataPath, taskType, hasLabels):
                 assert len(cols) == 3, "Data is not in Single Sentence Classification format"
                 row = {"uid": cols[0], "label": cols[1], "sentenceA": cols[2]}
             else:
-                row = {"uid": cols[0], "label": '-1', "sentenceA": cols[1]}
+                row = {"uid": cols[0], "label": '0', "sentenceA": cols[1]}
 
         elif taskType == TaskType.SentencePairClassification:
             if hasLabels is True:
                 assert len(cols) == 4, "Data is not in Sentence Pair Classification format"
                 row = {"uid": cols[0], "label": cols[1],"sentenceA": cols[2], "sentenceB": cols[3]}
             else:
-                row = {"uid": cols[0], "label": '-1', "sentenceA": cols[1], "sentenceB": cols[2]}
+                row = {"uid": cols[0], "label": '0', "sentenceA": cols[1], "sentenceB": cols[2]}
             
         elif taskType == TaskType.NER:
             #print(hasLabels)
@@ -105,10 +105,12 @@ def create_data_single_sen_classification(data, chunkNumber, tempList, maxSeqLen
                 label = sample['label']
                 assert label.isnumeric() or labelMap is not None, "In Sen Classification, either labels \
                                                                 should be integers or label map should be given in task file"
-                if labelMap is not None and not label.isnumeric():
+
+                if label.isnumeric():
+                    label = int(label)
+                else:
                     #make index label according to the map
                     label = labelMap[sample['label']]
-            
                 inputIds, typeIds, inputMask = standard_data_converter(maxSeqLen, tokenizer, senA)
                 features = {
                     'uid': ids,

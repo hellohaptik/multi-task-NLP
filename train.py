@@ -18,6 +18,7 @@ from models.data_manager import allTasksDataset, Batcher, batchUtils
 from torch.utils.data import Dataset, DataLoader, BatchSampler
 from logger_ import make_logger
 from models.model import multiTaskModel
+from models.eval import evaluate
 
 def make_arguments(parser):
     parser.add_argument('--data_dir', type = str, required=True,
@@ -54,6 +55,8 @@ def make_arguments(parser):
                         help = "name of log file to store")
     parser.add_argument('--log_per_updates', default = 10, type = int,
                         help = "number of steps after which to log loss")
+    parser.add_argument('--silent', type = bool, default = False,
+                        help = "Only write logs to file if True")
     parser.add_argument('--seed', default=42, type = int,
                         help = "seed to set for modules")
     parser.add_argument('--max_seq_len', default=384, type =int,
@@ -80,7 +83,7 @@ if not os.path.isdir(logDir):
     os.makedirs(logDir)
 
 logger = make_logger(name = "multi_task", debugMode=args.debug_mode,
-                    logFile=os.path.join(logDir, args.log_file), silent=False)
+                    logFile=os.path.join(logDir, args.log_file), silent=args.silent)
 logger.info("logger created.")
                     
 #setting seed
@@ -136,98 +139,11 @@ def make_data_handlers(taskParams, mode, isTrain, gpu):
 
     return allData, batchSampler, multiTaskDataLoader
 
-def evaluate(dataSet, batchSampler, dataLoader, taskParams,
-            model, gpu, hasLabels, needMetrics, wrtPredPath = None):
-    '''
-    Function to make predictions on the given data. The provided data can be multiple tasks or single task
-    It will seprate out the predictions based on task id for metrics evaluation
-    '''
-    numTasks = len(dataSet.taskDict)
-    numStep = math.ceil(len(dataLoader)/args.eval_batch_size)
-    allPreds = [[] for _ in range(numTasks)]
-    if hasLabels:
-        allLabels = [[] for _ in range(numTasks)]
-    allScores = [[] for _ in range(numTasks)]
-    allIds = [[] for _ in range(numTasks)]
-
-    for batchMetaData, batchData in tqdm(dataLoader, total =numStep):
-
-        batchMetaData, batchData = batchSampler.patch_data(batchMetaData,batchData, gpu = gpu)
-        prediction, logits = model.predict_step(batchMetaData, batchData)
-
-        logger.debug("predictions in eval: {}".format(prediction))       
-        batchTaskId = int(batchMetaData['task_id'])
-        if hasLabels:
-            orgLabels = batchMetaData['label']
-            allLabels[batchTaskId].extend(orgLabels)
-
-        logger.debug("batch task id in eval: {}".format(batchTaskId))
-        allPreds[batchTaskId].extend(prediction)
-        allScores[batchTaskId].extend(logits)
-        allIds[batchTaskId].extend(batchMetaData['uids'])
-
-    if needMetrics and hasLabels:
-        # fetch metrics from task id
-        for i in range(len(allPreds)):
-            taskName = taskParams.taskIdNameMap[i]
-            metrics = taskParams.metricsMap[taskName]
-            if metrics is None:
-                logger.info("No metrics are provided in task params (file)")
-                continue
-
-            taskType = taskParams.taskTypeMap[taskName]
-            if taskType == TaskType.NER:
-                # NER requires label clipping. We''ve already clipped our predictions
-                #using attn Masks, so we will clip labels to predictions len
-                for j, (p, l) in enumerate(zip(allPreds[i], allLabels[i])):
-                    allLabels[i][j] = l[:len(p)]
-
-                # Also we need to remove the extra tokens from predictions based on labels
-                labMap = taskParams.labelMap[taskName]
-                print(labMap)
-                labMapRev = {v:k for k,v in labMap.items()}
-
-                allPreds[i] = [ [ labMapRev[int(p)] for p in pp ] for pp in allPreds[i] ]
-                allLabels[i] = [ [labMapRev[int(l)] for l in ll] for ll in allLabels[i] ]
-
-                newPreds = []
-                newLabels = []
-                for m, samp in enumerate(allLabels[i]):
-                    Preds = []
-                    Labels = []
-                    for n, ele in enumerate(samp):
-                        #print(ele)
-                        if ele != '[CLS]' and ele != '[SEP]' and ele != 'X':
-                            #print('inside')
-                            Preds.append(allPreds[i][m][n])
-                            Labels.append(ele)
-                            #del allLabels[i][m][n]
-                            #del allPreds[i][m][n]
-                    newPreds.append(Preds)
-                    newLabels.append(Labels)
-                
-                allLabels[i] = newLabels
-                allPreds[i] = newPreds
-
-            logger.info("********** {} Evaluation************\n".format(taskName))
-            for m in metrics:
-                metricVal = METRICS[m](allLabels[i], allPreds[i])
-                logger.info("{} : {}".format(m, metricVal))
-
-    if wrtPredPath:
-        for i in range(len(allPreds)):
-            taskName = taskParams.taskIdNameMap[i]
-            if hasLabels:
-                df = pd.DataFrame({"uid" : allIds[i], "prediction" : allPreds[i], "label" : allLabels[i]})
-            else:
-                df = pd.DataFrame({"uid" : allIds[i], "prediction" : allPreds[i]})
-
-            savePath = os.path.join(args.out_dir, "{}_{}".format(taskName, wrtPredPath))
-            df.to_csv(savePath, sep = "\t", index = False)
-            logger.info("Predictions File saved at {}".format(savePath))
+    
 
 def main():
     allParams = vars(args)
+    logger.info('ARGS : {}'.format(allParams))
     # loading if load_saved_model
     if args.load_saved_model is not None:
         assert os.path.exists(args.load_saved_model), "saved model not present at {}".format(args.load_saved_model)
@@ -254,7 +170,15 @@ def main():
             '''
             taskParams = loadedDict['task_params']
             logger.info('Task Params loaded from saved model.')
-            logger.info('Any changes made to task file after saving this model shall be ignored')
+            logger.info('Any changes made to task file except the data \
+                        file paths after saving this model shall be ignored')
+            tempTaskParams = TasksParam(args.task_file)
+            #transfering the names of file in new task file to loaded task params
+            for taskId, taskName in taskParams.taskIdNameMap.items():
+                assert taskName in tempTaskParams.taskIdNameMap.values(), "task names changed in task file given.\
+                tasks supported for loaded model are {}".format(list(taskParams.taskIdNameMap.values()))
+
+                taskParams.fileNamesMap[taskName] = tempTaskParams.fileNamesMap[taskName]
     else:
         taskParams = TasksParam(args.task_file)
         logger.info("Task params object created from task file...")
@@ -290,8 +214,8 @@ def main():
     #making multi-task model
     allParams['num_train_steps'] = math.ceil(len(multiTaskDataLoaderTrain)/args.train_batch_size) *args.epochs // args.grad_accumulation_steps
     allParams['warmup_steps'] = args.num_of_warmup_steps
-    print("NUM TRAIN STEPS: ", allParams['num_train_steps'])
-    print("len of dataloader: ", len(multiTaskDataLoaderTrain))
+    logger.info("NUM TRAIN STEPS: {}".format(allParams['num_train_steps']))
+    logger.info("len of dataloader: {}".format(len(multiTaskDataLoaderTrain)))
     logger.info("Making multi-task model...")
     model = multiTaskModel(allParams)
     #logger.info('################ Network ###################')
@@ -310,57 +234,62 @@ def main():
 
     # training 
     resCnt = 0
-    for epoch in tqdm(range(args.epochs), total = args.epochs):
+    for epoch in range(args.epochs):
         logger.info('\n####################### EPOCH {} ###################\n'.format(epoch))
         totalEpochLoss = 0
-        for i, (batchMetaData, batchData) in enumerate(multiTaskDataLoaderTrain):
-            batchMetaData, batchData = BatchSamplerTrain.patch_data(batchMetaData,batchData, gpu = allParams['gpu'])
-            if args.resume_train and args.load_saved_model and resCnt*args.grad_accumulation_steps < model.globalStep:
-                '''
-                NOTE: - Resume function is only to be used in case the training process couldnt
-                complete or you wish to extend the training to some more epochs.
-                Please keep the gradient accumulation step the same for exact resuming.
-                '''
-                resCnt += 1
-                continue
-            model.update_step(batchMetaData, batchData)
-            totalEpochLoss += model.taskLoss.item()
+        text = "Epoch: {}".format(epoch)
+        tt = int(allParams['num_train_steps']*args.grad_accumulation_steps/args.epochs)
+        with tqdm(total = tt, position=epoch, desc=text) as progress:
+            for i, (batchMetaData, batchData) in enumerate(multiTaskDataLoaderTrain):
+                batchMetaData, batchData = BatchSamplerTrain.patch_data(batchMetaData,batchData, gpu = allParams['gpu'])
+                if args.resume_train and args.load_saved_model and resCnt*args.grad_accumulation_steps < model.globalStep:
+                    '''
+                    NOTE: - Resume function is only to be used in case the training process couldnt
+                    complete or you wish to extend the training to some more epochs.
+                    Please keep the gradient accumulation step the same for exact resuming.
+                    '''
+                    resCnt += 1
+                    continue
+                model.update_step(batchMetaData, batchData)
+                totalEpochLoss += model.taskLoss.item()
 
-            if model.globalStep % args.log_per_updates == 0 and (model.accumulatedStep+1 == args.grad_accumulation_steps):
-                taskId = batchMetaData['task_id']
-                taskName = taskParams.taskIdNameMap[taskId]
-                avgLoss = totalEpochLoss / ((i+1)*args.train_batch_size) 
-                logger.info('Steps: {} Task: {} Avg.Loss: {} Task Loss: {}'.format(model.globalStep,
-                                                                                taskName,
-                                                                                avgLoss,
-                                                                                model.taskLoss.item()))
-                if args.tensorboard:
-                    tensorboard.add_scalar('train/avg_loss', avgLoss, global_step= model.globalStep)
-                    tensorboard.add_scalar('train/{}_loss'.format(taskName),
-                                            model.taskLoss.item(),
-                                            global_step=model.globalStep)
+                if model.globalStep % args.log_per_updates == 0 and (model.accumulatedStep+1 == args.grad_accumulation_steps):
+                    taskId = batchMetaData['task_id']
+                    taskName = taskParams.taskIdNameMap[taskId]
+                    avgLoss = totalEpochLoss / ((i+1)*args.train_batch_size) 
+                    logger.info('Steps: {} Task: {} Avg.Loss: {} Task Loss: {}'.format(model.globalStep,
+                                                                                    taskName,
+                                                                                    avgLoss,
+                                                                                    model.taskLoss.item()))
+                    if args.tensorboard:
+                        tensorboard.add_scalar('train/avg_loss', avgLoss, global_step= model.globalStep)
+                        tensorboard.add_scalar('train/{}_loss'.format(taskName),
+                                                model.taskLoss.item(),
+                                                global_step=model.globalStep)
 
-            if args.save_per_updates > 0 and (model.globalStep % args.save_per_updates)==0 and (model.accumulatedStep+1==args.grad_accumulation_steps):
-                savePath = os.path.join(args.out_dir, 'multi_task_model_{}_{}.pt'.format(epoch,
-                                                                                        model.globalStep))
-                model.save_multi_task_model(savePath)
+                if args.save_per_updates > 0 and (model.globalStep+1 % args.save_per_updates)==0 and (model.accumulatedStep+1==args.grad_accumulation_steps):
+                    savePath = os.path.join(args.out_dir, 'multi_task_model_{}_{}.pt'.format(epoch,
+                                                                                            model.globalStep))
+                    model.save_multi_task_model(savePath)
+                progress.update(1)
 
-        #saving model after epoch
-        savePath = os.path.join(args.out_dir, 'multi_task_model_{}_{}.pt'.format(epoch, model.globalStep))  
-        model.save_multi_task_model(savePath)
+            #saving model after epoch
+            savePath = os.path.join(args.out_dir, 'multi_task_model_{}_{}.pt'.format(epoch, model.globalStep))  
+            model.save_multi_task_model(savePath)
 
-        if args.eval_while_train:
-            logger.info("\nRunning Evaluation on dev...")
-            with torch.no_grad():
-                evaluate(allDataDev, BatchSamplerDev, multiTaskDataLoaderDev, taskParams,
-                        model, gpu=allParams['gpu'], needMetrics=True, hasLabels=True)
+            if args.eval_while_train:
+                logger.info("\nRunning Evaluation on dev...")
+                with torch.no_grad():
+                    evaluate(allDataDev, BatchSamplerDev, multiTaskDataLoaderDev, taskParams,
+                            model, gpu=allParams['gpu'],evalBatchSize=args.eval_batch_size, hasTrueLabels=True, needMetrics=True)
 
-        if args.test_while_train:
-            logger.info("\nRunning Evaluation on test...")
-            wrtPredpath = "test_predictions_{}.tsv".format(epoch)
-            with torch.no_grad():
-                evaluate(allDataTest, BatchSamplerTest, multiTaskDataLoaderTest, taskParams,
-                        model,gpu=allParams['gpu'], needMetrics=True, hasLabels=True, wrtPredPath=wrtPredpath)
+            if args.test_while_train:
+                logger.info("\nRunning Evaluation on test...")
+                wrtPredpath = "test_predictions_{}.tsv".format(epoch)
+                with torch.no_grad():
+                    evaluate(allDataTest, BatchSamplerTest, multiTaskDataLoaderTest, taskParams,
+                            model, gpu=allParams['gpu'], evalBatchSize = args.eval_batch_size, needMetrics=True, hasTrueLabels=True,
+                            wrtDir=args.out_dir, wrtPredPath=wrtPredpath)
 
 if __name__ == "__main__":
     main()

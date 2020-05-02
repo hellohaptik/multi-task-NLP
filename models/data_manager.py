@@ -17,8 +17,9 @@ class allTasksDataset(Dataset):
                 [ {"data_task_id" : "", "data_path" : "", "data_task_type" : ""},
                  ...]
     '''
-    def __init__(self, taskDict):
+    def __init__(self, taskDict, pipeline = False):
         self.taskDict = taskDict
+        self.pipeline = pipeline
         self.allTasksData, self.taskIdTypeMap = self.make_all_datasets()
 
     def read_data(self, readPath):
@@ -40,8 +41,11 @@ class allTasksDataset(Dataset):
         allTasksData = {}
         taskIdTypeMap = {} # mapping from task id to task type
         for task in self.taskDict:
-            
-            data = self.read_data(task["data_path"])
+            if self.pipeline:
+                logger.info('Reading data for pipeline')
+                data = task["data_"]
+            else:
+                data = self.read_data(task["data_path"])
             allTasksData[task["data_task_id"]] = data
             taskIdTypeMap[task["data_task_id"]] = task["data_task_type"]
             logger.info('Read Data for Task Id: {} Task Name: {}. Samples {}'.format(task["data_task_id"], task["data_task_name"], len(data)))

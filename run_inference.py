@@ -2,14 +2,7 @@
 File for making inference on a testing file with a saved multi-task model over 
 The input data file here has to be the data prepared file for the corresponding test file
 
-For getting inference on a test file, (say test.tsv),
-
-1. Prepare the data for the file using data_preparation.py. You can use the same
-tasks_file used for training the corresponding model by changing the filenames with 
-the name of the test file along with the 'has_labels' argument to True/ False depending
-on the file has labels or not.
-
-2. 
+For getting inference on a test file, (say test.tsv) 
 """
 from utils.task_utils import TasksParam
 from utils.data_utils import TaskType, ModelType, NLP_MODELS
@@ -68,7 +61,7 @@ def main():
     
     #making tokenizer for model
     tokenizer = tokenizerClass.from_pretrained(configName)
-    print('{} model tokenizer loaded for config {}'.format(modelName, configName))
+    logger.info('{} model tokenizer loaded for config {}'.format(modelName, configName))
     
     dataPath = os.path.join(args.out_dir, '{}_prediction_data'.format(configName))
     if not os.path.exists(dataPath):

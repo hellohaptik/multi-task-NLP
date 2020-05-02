@@ -7,7 +7,8 @@ from tqdm import tqdm
 logger = logging.getLogger("multi_task")
 
 def evaluate(dataSet, batchSampler, dataLoader, taskParams,
-            model, gpu, evalBatchSize, needMetrics, hasTrueLabels, wrtDir=None, wrtPredPath = None):
+            model, gpu, evalBatchSize, needMetrics, hasTrueLabels,
+            wrtDir=None, wrtPredPath = None, returnPred=False):
     '''
     Function to make predictions on the given data. The provided data can be multiple tasks or single task
     It will seprate out the predictions based on task id for metrics evaluation
@@ -109,3 +110,6 @@ def evaluate(dataSet, batchSampler, dataLoader, taskParams,
             savePath = os.path.join(wrtDir, "{}_{}".format(taskName, wrtPredPath))
             df.to_csv(savePath, sep = "\t", index = False)
             logger.info("Predictions File saved at {}".format(savePath))
+
+    if returnPred:
+        return allIds, allPreds

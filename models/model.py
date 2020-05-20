@@ -43,22 +43,22 @@ class multiTaskNetwork(nn.Module):
 
         The final layer output size depends on the number of classes expected in the output
         '''
-        allHeaders = nn.ModuleList()
-        allDropouts = nn.ModuleList()
+        #allHeaders = nn.ModuleList()
+        allHeaders = nn.ModuleDict()
+        #allDropouts = nn.ModuleList()
+        allDropouts = nn.ModuleDict()
 
         # taskIdNameMap is orderedDict, it will preserve the order of tasks
         for taskId, taskName in self.taskParams.taskIdNameMap.items():
             taskType = self.taskParams.taskTypeMap[taskName]
             numClasses = int(self.taskParams.classNumMap[taskName])
             dropoutValue = self.taskParams.dropoutProbMap[taskName]
-            if taskType == TaskType.Span:
-                assert numClasses == 2, " Span required num classes to be 2"
-            if taskType == TaskType.NER:
-                numClasses += 3  # extra for '[CLS]', '[SEP]', 'X'
             dropoutLayer = DropoutWrapper(dropoutValue)
             outLayer = nn.Linear(self.hiddenSize, numClasses)
-            allDropouts.append(dropoutLayer)
-            allHeaders.append(outLayer)
+            #allDropouts.append(dropoutLayer)
+            allDropouts[taskName] = dropoutLayer
+            #allHeaders.append(outLayer)
+            allHeaders[taskName] = outLayer
             
 
         return allDropouts, allHeaders
@@ -81,7 +81,7 @@ class multiTaskNetwork(nn.Module):
         poolerLayer = nn.Linear(self.hiddenSize, self.hiddenSize)
         return poolerLayer
 
-    def forward(self, tokenIds, typeIds, attentionMasks, taskId):
+    def forward(self, tokenIds, typeIds, attentionMasks, taskId, taskName):
 
         # taking out output from shared encoder. 
         if typeIds is not None and attentionMasks is not None:
@@ -111,9 +111,9 @@ class multiTaskNetwork(nn.Module):
         taskType = self.taskParams.taskTypeMap[self.taskParams.taskIdNameMap[taskId]]
         if taskType == TaskType.Span:
             #adding dropout layer after shared output
-            sequenceOutput = self.allDropouts[taskId](sequenceOutput)
+            sequenceOutput = self.allDropouts[taskName](sequenceOutput)
             #adding task specific header
-            finalOutLogits = self.allHeaders[taskId](sequenceOutput)
+            finalOutLogits = self.allHeaders[taskName](sequenceOutput)
             #as this is span, logits will have 2 entries, one for start and other for end
             startLogits, endLogits = finalOutLogits.split(1, dim=1)
             startLogits = startLogits.squeeze(-1)
@@ -121,17 +121,17 @@ class multiTaskNetwork(nn.Module):
             return startLogits, endLogits
 
         elif taskType == TaskType.NER:
-            sequenceOutput = self.allDropouts[taskId](sequenceOutput)
+            sequenceOutput = self.allDropouts[taskName](sequenceOutput)
             #task specific header. In NER case, sequence output is 3-D, also has maxSeqLen.
             # but the pytorch liner layer now can hangle this as long as the last dimension is the given dimensions
-            logits = self.allHeaders[taskId](sequenceOutput)
+            logits = self.allHeaders[taskName](sequenceOutput)
             return logits
             
         else:
             #adding dropout layer after shared output
-            pooledOutput = self.allDropouts[taskId](pooledOutput)
+            pooledOutput = self.allDropouts[taskName](pooledOutput)
             #adding task specific header
-            logits = self.allHeaders[taskId](pooledOutput)
+            logits = self.allHeaders[taskName](pooledOutput)
             return logits
 
 class multiTaskModel:
@@ -164,6 +164,7 @@ class multiTaskModel:
         if self.params['gpu']:
             self.network.cuda()
 
+        #print(self.network.state_dict().keys())
         #optimizer and scheduler
         self.optimizer, self.scheduler = self.make_optimizer(numTrainSteps=self.params['num_train_steps'],
                                                             warmupSteps=self.params['warmup_steps'])
@@ -189,7 +190,7 @@ class multiTaskModel:
         lossClassList = []
         for taskId, taskName in self.taskParams.taskIdNameMap.items():
             lossName = self.taskParams.lossMap[taskName].name.lower()
-            lossClass = LOSSES[lossName]()
+            lossClass = LOSSES[lossName](alpha=self.taskParams.lossWeightMap[taskName])
             lossClassList.append(lossClass)
         return lossClassList
 
@@ -215,6 +216,7 @@ class multiTaskModel:
             target = self._to_cuda(target)
 
         taskId = batchMetaData['task_id']
+        taskName = self.taskParams.taskIdNameMap[taskId]
         logger.debug('task id for batch {}'.format(taskId))
         #making forward pass
         #batchData: [tokenIdsBatchTensor, typeIdsBatchTensor, masksBatchTensor, labelsTensor]
@@ -226,6 +228,7 @@ class multiTaskModel:
 
         modelInputs = batchData[:batchMetaData['label_pos']]
         modelInputs += [taskId]
+        modelInputs += [taskName]
 
         logger.debug('size of model inputs {}'.format(len(modelInputs)))
         logits = self.network(*modelInputs)
@@ -234,7 +237,7 @@ class multiTaskModel:
         logger.debug('size of model output logits {}'.format(logits.size()))
         logger.debug('size of target {}'.format(target.size()))
         if self.lossClassList[taskId] and (target is not None):
-            self.taskLoss = self.lossClassList[taskId](logits, target)
+            self.taskLoss = self.lossClassList[taskId](logits, target, attnMasks=modelInputs[2])
             #tensorboard details
             if self.params['tensorboard']:
                 self.tbTaskId = taskId
@@ -266,8 +269,9 @@ class multiTaskModel:
         '''
         self.network.eval()
         taskId = batchMetaData['task_id']
+        taskName = self.taskParams.taskIdNameMap[taskId]
         taskType = batchMetaData['task_type']
-        modelInputs = batchData + [taskId]
+        modelInputs = batchData + [taskId] + [taskName]
         logger.debug("Pred model input length: {}".format(len(modelInputs)))
 
         #making forward pass to get logits
@@ -275,32 +279,41 @@ class multiTaskModel:
         logger.debug("Pred model logits shape: {}".format(outLogits.size()))
         #process logits as per task type
         if taskType in (TaskType.SingleSenClassification, TaskType.SentencePairClassification):
-            outLogits = nn.functional.softmax(outLogits, dim = 1).data.cpu().numpy()
-            predictedClass = np.argmax(outLogits, axis = 1)
+            outLogitsSoftmax = nn.functional.softmax(outLogits, dim = 1).data.cpu().numpy()
+            outLogitsSigmoid = nn.functional.sigmoid(outLogits).data.cpu().numpy()
+            predictedClass = np.argmax(outLogitsSoftmax, axis = 1)
+
             logger.debug("Final Predictions shape after argmx: {}".format(predictedClass.shape))
             predictedClass = predictedClass.tolist()
-            return predictedClass, outLogits
+            return predictedClass, outLogitsSigmoid
 
         if taskType == TaskType.NER:
-            outLogits = nn.functional.softmax(outLogits, dim = 2).data.cpu().numpy()
+            outLogitsSoftmax = nn.functional.softmax(outLogits, dim = 2).data.cpu().numpy()
+            ouLogitsSigmoid = nn.functional.sigmoid(outLogits).data.cpu().numpy()
             #shape of outlogits now (batchSize, maxSeqLen, classNum)
-            predicted = np.argmax(outLogits, axis = 2)
+            
+            predicted = np.argmax(outLogitsSoftmax, axis = 2)
+            # here in score, we only want to give out the score of the class of tag 
+            #which is maximum
+            predScore = np.max(ouLogitsSigmoid, axis = 2).tolist()
+            
             #shape of predicted now (batchSize, maxSeqLen)
             logger.debug("Final Predictions shape after argmx: {}".format(predicted.shape))
             predicted = predicted.tolist()
-
             # get the attention masks, we need to discard the predictions made for extra padding
             attnMasksBatch = batchData[2]
             predictedTags = []
+            predScoreTags = []
             if attnMasksBatch is not None:
                 #shape of attention Masks (batchSize, maxSeqLen)
                 actualLengths = attnMasksBatch.cpu().numpy().sum(axis = 1).tolist()
-                for i, pred in enumerate(predicted):
+                for i, (pred, sc) in enumerate(zip(predicted, predScore)):
                     predictedTags.append( pred[:actualLengths[i]] )
+                    predScoreTags.append( sc[:actualLengths[i]])
                 
-                return predictedTags, outLogits
+                return predictedTags, predScoreTags
             else:
-                return predicted, outLogits
+                return predicted, predScore
         else:
             raise ValueError("Task type for prediction batch not known {}".format(taskType))
 
@@ -324,16 +337,48 @@ class multiTaskModel:
         logger.info('model saved in {} global step at {}'.format(self.globalStep, savePath))
 
     def load_multi_task_model(self, loadedDict):
+
+        '''
+        Need to check state dict for multi-gpu and single-gpu compatibility
+        '''
+        # anyway stripping module from front (if present/not present)
+        loadedDict['model_state_dict'] = {k.lstrip('module.'):v for k, v in loadedDict['model_state_dict'].items()}
+        if torch.cuda.device_count() > 1:
+            #current network requires 'module'
+            loadedDict['model_state_dict'] = {'module.'+k : v for k, v in loadedDict['model_state_dict'].items()}
+
         self.network.load_state_dict(loadedDict['model_state_dict'])
+        #print(self.network.state_dict().keys())
         self.optimizer.load_state_dict(loadedDict['optimizer_state'])
         self.scheduler.load_state_dict(loadedDict['scheduler_state'])
         self.globalStep = loadedDict['global_step']
 
     def load_shared_model(self, loadedDict, freeze):
+
+        loadedDict['model_state_dict'] = {k.lstrip('module.'):v for k, v in loadedDict['model_state_dict'].items()}
+        if torch.cuda.device_count() > 1:
+            #current network requires 'module'
+            loadedDict['model_state_dict'] = {'module.'+k : v for k, v in loadedDict['model_state_dict'].items()}
+
         #filling in weights from saved shared model to model
         pretrainedDict = loadedDict['model_state_dict']
+        pretrainedTaskParams = loadedDict['task_params']
+        #print('pretrained model keys: ', pretrainedDict.keys())
         modelDict = self.network.state_dict()
-        updateDict = {k :pretrainedDict[k] for k in modelDict if k.startswith('sharedModel')}
+        #print('new model keys: ', modelDict.keys())
+
+        logger.info('transferring weight of shared model')
+        updateDict = {k :pretrainedDict[k] for k in modelDict if k.startswith('sharedModel') or k.startswith('poolerLayer')}
+        logger.info('number of parameters transferred for shared model {}'.format(len(updateDict)))
+
+        logger.info('looking for common parameters for task specific headers...')
+        for taskId, taskName in pretrainedTaskParams.taskIdNameMap.items():
+            for key in modelDict:
+                if key.startswith('allHeaders.{}'.format(taskName)):
+                    updateDict[key] = pretrainedDict[key]
+                    logger.info('transferring parameter for task header: {}'.format(taskName))
+        
+        #print('update dict: ', updateDict.keys())
         modelDict.update(updateDict)
         self.network.load_state_dict(modelDict)
 

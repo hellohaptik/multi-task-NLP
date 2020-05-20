@@ -34,6 +34,9 @@ def load_data(dataPath, taskType, hasLabels):
 
         elif taskType == TaskType.SentencePairClassification:
             if hasLabels is True:
+                if len(cols) != 4:
+                    print('skipping row: {}'.format(cols))
+                    continue
                 assert len(cols) == 4, "Data is not in Sentence Pair Classification format"
                 row = {"uid": cols[0], "label": cols[1],"sentenceA": cols[2], "sentenceB": cols[3]}
             else:

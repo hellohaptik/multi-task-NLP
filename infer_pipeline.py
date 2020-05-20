@@ -114,13 +114,57 @@ class inferPipeline:
             allData.append(features)
 
         return allData
-    def format_output(self, dataList, allIds, allPreds):
-        for sampleId in allIds[0]:
-            print("\nInput Sample : ", dataList[sampleId])
+    def format_ner_output(self, sample, result):
+        assert len(sample) == len(result), "length of sample and result list not same"
+        returnList = []
+        for i, (sam, res) in enumerate(zip(sample, result)):
+            if res not in ["O", "[CLS]", "[SEP]", "X"]:
+                curr = res.split('-')[-1]
+                if len(returnList)>0:
+                    if curr == returnList[len(returnList)-1][0]:
+                        returnList[len(returnList)-1].append(sam)
+                    else:
+                        returnList.append([curr, sam])
+                else:
+                    returnList.append([curr, sam])
+                    #print(returnList)
+        outList = []
+        for finalSam in returnList:
+            #print(finalSam)
+            outS = ' '.join(finalSam[1:])
+            #print(outS)
+            outList.append((finalSam[0], outS))
+            #print('{} : {}'.format(finalSam[0], outS))
+
+        return outList
+
+    def format_output(self, dataList, allIds, allPreds, allScores):
+        returnList = []
+        for sampleId in range(len(dataList)):
+            resDict = {}
+            #print("\nInput Sample : ", dataList[sampleId])
+            resDict['Query'] = dataList[sampleId]
             for i in range(len(allIds)):
                 taskName = self.taskParams.taskIdNameMap[i]
-                result = allPreds[i][sampleId]
-                print("{} : {}".format(taskName, result))
+                taskType = self.taskParams.taskTypeMap[taskName]
+                if allPreds[i] == []:
+                    continue
+
+                if taskType == TaskType.NER:
+                    result = allPreds[i][sampleId]
+                    inpp = dataList[sampleId][0].split()
+                    #print("{} : ".format(taskName))
+                    result = self.format_ner_output(inpp, result)
+                else:
+                    result = [allPreds[i][sampleId], allScores[i][sampleId]]
+
+                resDict[taskName] = result
+                #else:
+                    #print("{} : {}".format(taskName, result))
+            returnList.append(resDict)
+        #print(returnList)
+        return returnList
+                
 
     def infer(self, dataList, taskNamesList, batchSize = 8, seed=42):
         '''
@@ -131,6 +175,8 @@ class inferPipeline:
         taskNamesList :- list of tasks to perform on data
                     eg. [<taskName1>, <taskName2> ,..]
         '''
+        #print(dataList)
+        #print(taskNamesList)
         allTasksList = []
         for taskName in taskNamesList:
             assert taskName in self.taskParams.taskIdNameMap.values(), "task Name not in task names for loaded model"
@@ -138,6 +184,8 @@ class inferPipeline:
             taskType = self.taskParams.taskTypeMap[taskName]
 
             taskData = self.make_feature_samples(dataList, taskType, taskName)
+            #print('task data :', taskData)
+
             tasksDict = {"data_task_id" : int(taskId),
                         "data_" : taskData,
                         "data_task_type" : taskType,
@@ -145,7 +193,11 @@ class inferPipeline:
             allTasksList.append(tasksDict)
 
         allData = allTasksDataset(allTasksList, pipeline=True)
-        batchSampler = Batcher(allData, batchSize=batchSize, seed =seed)
+        batchSampler = Batcher(allData, batchSize=batchSize, seed =seed,
+                             shuffleBatch=False, shuffleTask=False)
+        # VERY IMPORTANT TO TURN OFF BATCH SHUFFLE IN INFERENCE. ELSE PREDICTION SCORES
+        # WILL GET JUMBLED
+
         batchSamplerUtils = batchUtils(isTrain = False, modelType= self.taskParams.modelType,
                                   maxSeqLen = self.maxSeqLen)
         inferDataLoader = DataLoader(allData, batch_sampler=batchSampler,
@@ -153,10 +205,13 @@ class inferPipeline:
                                     pin_memory=torch.cuda.is_available())
 
         with torch.no_grad():
-            allIds, allPreds = evaluate(allData, batchSampler, inferDataLoader, self.taskParams,
+            allIds, allPreds, allScores = evaluate(allData, batchSampler, inferDataLoader, self.taskParams,
                     self.model, gpu=torch.cuda.is_available(), evalBatchSize=batchSize, needMetrics=False, hasTrueLabels=False,
                     returnPred=True)
-            self.format_output(dataList, allIds, allPreds)
+
+            finalOutList = self.format_output(dataList, allIds, allPreds, allScores)
+            #print(finalOutList)
+            return finalOutList
 
 
             

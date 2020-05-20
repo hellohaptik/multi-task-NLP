@@ -249,6 +249,7 @@ def main():
                     Please keep the gradient accumulation step the same for exact resuming.
                     '''
                     resCnt += 1
+                    progress.update(1)
                     continue
                 model.update_step(batchMetaData, batchData)
                 totalEpochLoss += model.taskLoss.item()
@@ -266,16 +267,19 @@ def main():
                         tensorboard.add_scalar('train/{}_loss'.format(taskName),
                                                 model.taskLoss.item(),
                                                 global_step=model.globalStep)
-
-                if args.save_per_updates > 0 and (model.globalStep+1 % args.save_per_updates)==0 and (model.accumulatedStep+1==args.grad_accumulation_steps):
+                
+                if args.save_per_updates > 0 and  ( (model.globalStep+1) % args.save_per_updates)==0 and (model.accumulatedStep+1==args.grad_accumulation_steps):
                     savePath = os.path.join(args.out_dir, 'multi_task_model_{}_{}.pt'.format(epoch,
                                                                                             model.globalStep))
                     model.save_multi_task_model(savePath)
                 progress.update(1)
 
             #saving model after epoch
-            savePath = os.path.join(args.out_dir, 'multi_task_model_{}_{}.pt'.format(epoch, model.globalStep))  
-            model.save_multi_task_model(savePath)
+            if args.resume_train and args.load_saved_model and resCnt*args.grad_accumulation_steps < model.globalStep:
+                pass
+            else:
+                savePath = os.path.join(args.out_dir, 'multi_task_model_{}_{}.pt'.format(epoch, model.globalStep))  
+                model.save_multi_task_model(savePath)
 
             if args.eval_while_train:
                 logger.info("\nRunning Evaluation on dev...")

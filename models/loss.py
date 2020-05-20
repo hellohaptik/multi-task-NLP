@@ -37,10 +37,11 @@ class NERLoss(_Loss):
             nerLabels = torch.where(
                 nerLoss, target.view(-1), torch.tensor(self.ignore_index).type_as(target)
             )
-            finalLoss = F.cross_entropy(nerlogits, nerLabels)
+            finalLoss = F.cross_entropy(nerlogits, nerLabels, ignore_index=self.ignore_index)
 
         else:
-            finalLoss = F.cross_entropy(inp.view(-1, inp.size(-1)), target.view(-1))
+            finalLoss = F.cross_entropy(inp.view(-1, inp.size(-1)), target.view(-1),
+                                        ignore_index=self.ignore_index)
  
         finalLoss *= self.alpha
         return finalLoss

@@ -22,7 +22,7 @@ def evaluate(dataSet, batchSampler, dataLoader, taskParams,
 
     for batchMetaData, batchData in tqdm(dataLoader, total=numStep, desc = 'Eval'):
         batchMetaData, batchData = batchSampler.patch_data(batchMetaData,batchData, gpu = gpu)
-        prediction, logits = model.predict_step(batchMetaData, batchData)
+        prediction, scores = model.predict_step(batchMetaData, batchData)
 
         logger.debug("predictions in eval: {}".format(prediction))       
         batchTaskId = int(batchMetaData['task_id'])
@@ -32,7 +32,7 @@ def evaluate(dataSet, batchSampler, dataLoader, taskParams,
 
         logger.debug("batch task id in eval: {}".format(batchTaskId))
         allPreds[batchTaskId].extend(prediction)
-        allScores[batchTaskId].extend(logits)
+        allScores[batchTaskId].extend(scores)
         allIds[batchTaskId].extend(batchMetaData['uids'])
 
     for i in range(len(allPreds)):
@@ -58,22 +58,27 @@ def evaluate(dataSet, batchSampler, dataLoader, taskParams,
 
             newPreds = []
             newLabels = []
+            newScores = []
             for m, samp in enumerate(allLabels[i]):
                 Preds = []
                 Labels = []
+                Scores = []
                 for n, ele in enumerate(samp):
                     #print(ele)
                     if ele != '[CLS]' and ele != '[SEP]' and ele != 'X':
                         #print('inside')
                         Preds.append(allPreds[i][m][n])
                         Labels.append(ele)
+                        Scores.append(allScores[i][m][n])
                         #del allLabels[i][m][n]
                         #del allPreds[i][m][n]
                 newPreds.append(Preds)
                 newLabels.append(Labels)
+                newScores.append(Scores)
             
             allLabels[i] = newLabels
             allPreds[i] = newPreds
+            allScores[i] = newScores
 
         if taskType == TaskType.SingleSenClassification and labMap is not None:
 
@@ -112,4 +117,4 @@ def evaluate(dataSet, batchSampler, dataLoader, taskParams,
             logger.info("Predictions File saved at {}".format(savePath))
 
     if returnPred:
-        return allIds, allPreds
+        return allIds, allPreds, allScores

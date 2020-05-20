@@ -74,12 +74,13 @@ class TasksParam:
 
                 else:
                     raise ValueError("label_map_or_file not recognized")
+                
                 if taskTypeMap[taskName] == TaskType.NER:
-                    labelMap[taskName]['[CLS]'] = len(labelMap[taskName]) - 1
-                    labelMap[taskName]['[SEP]'] = len(labelMap[taskName]) - 1
-                    labelMap[taskName]['X'] = len(labelMap[taskName]) - 1
+                    labelMap[taskName]['[CLS]'] = len(labelMap[taskName])
+                    labelMap[taskName]['[SEP]'] = len(labelMap[taskName])
+                    labelMap[taskName]['X'] = len(labelMap[taskName])
                     if "O" not in labelMap[taskName]:
-                        labelMap[taskName]["O"] = len(labelMap[taskName]) - 1
+                        labelMap[taskName]["O"] = len(labelMap[taskName])
                         
                 classNumMap[taskName] = len(labelMap[taskName])
 

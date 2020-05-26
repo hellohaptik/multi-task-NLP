@@ -2,6 +2,7 @@ from enum import IntEnum
 from transformers import *
 from models.loss import *
 from utils.eval_metrics import *
+from utils.tranform_functions import *
 
 NLP_MODELS = {
     "bert": (BertConfig, BertModel, BertTokenizer, 'bert-base-uncased'),
@@ -25,6 +26,15 @@ METRICS = {
     "seq_f1" : seq_f1_score,
     "seq_precision" : seq_precision,
     "seq_recall" : seq_recall
+}
+
+TRANSFORM_FUNCS = {
+    "snips_intent_ner" : snips_intent_ner_to_tsv,
+    "coNLL_pos_ner" : coNLL_ner_pos_to_tsv,
+    "snli_entailment" : snli_entailment_to_tsv,
+    "bio_ner" : bio_ner_to_tsv,
+    "fragment" : fragment_detection_to_tsv,
+    "msmarco_query_type" : msmarco_query_type_to_tsv
 }
 
 class ModelType(IntEnum):

@@ -32,10 +32,3 @@ Step by Step Guide
    training
    infering
 
-
-Indices and tables
-------------------
-
-* :ref:`genindex`
-* :ref:`modindex`
-* :ref:`search`

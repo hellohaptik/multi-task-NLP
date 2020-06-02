@@ -43,9 +43,7 @@ class multiTaskNetwork(nn.Module):
 
         The final layer output size depends on the number of classes expected in the output
         '''
-        #allHeaders = nn.ModuleList()
         allHeaders = nn.ModuleDict()
-        #allDropouts = nn.ModuleList()
         allDropouts = nn.ModuleDict()
 
         # taskIdNameMap is orderedDict, it will preserve the order of tasks
@@ -55,9 +53,7 @@ class multiTaskNetwork(nn.Module):
             dropoutValue = self.taskParams.dropoutProbMap[taskName]
             dropoutLayer = DropoutWrapper(dropoutValue)
             outLayer = nn.Linear(self.hiddenSize, numClasses)
-            #allDropouts.append(dropoutLayer)
             allDropouts[taskName] = dropoutLayer
-            #allHeaders.append(outLayer)
             allHeaders[taskName] = outLayer
             
 
@@ -109,18 +105,8 @@ class multiTaskNetwork(nn.Module):
         #pooledOutput = outputs[1] if len(outputs) >1 else self.make_pooler_output(sequenceOutput)
 
         taskType = self.taskParams.taskTypeMap[self.taskParams.taskIdNameMap[taskId]]
-        if taskType == TaskType.Span:
-            #adding dropout layer after shared output
-            sequenceOutput = self.allDropouts[taskName](sequenceOutput)
-            #adding task specific header
-            finalOutLogits = self.allHeaders[taskName](sequenceOutput)
-            #as this is span, logits will have 2 entries, one for start and other for end
-            startLogits, endLogits = finalOutLogits.split(1, dim=1)
-            startLogits = startLogits.squeeze(-1)
-            endLogits = endLogits.squeeze(-1)
-            return startLogits, endLogits
 
-        elif taskType == TaskType.NER:
+        if taskType == TaskType.NER:
             sequenceOutput = self.allDropouts[taskName](sequenceOutput)
             #task specific header. In NER case, sequence output is 3-D, also has maxSeqLen.
             # but the pytorch liner layer now can hangle this as long as the last dimension is the given dimensions

@@ -16,7 +16,24 @@ logger = logging.getLogger("multi_task")
 
 class inferPipeline:
 
-    def __init__(self, modelPath, maxSeqLen):
+    """
+    For running inference on samples using a trained model for say TaskA, TaskB and TaskC,
+    you can import this class and load the corresponding multi-task model by making an 
+    object of this class with the following arguments
+
+    Args:
+        modelPath (:obj:`str`) : Path to the trained multi-task model for required tasks.
+        maxSeqLen (:obj:`int`, defaults to :obj:`128`) : maximum sequence length to be considered for samples.
+         Truncating and padding will happen accordingly.
+        
+    Example::
+
+        >>> from infer_pipeline import inferPipeline
+        >>> pipe = inferPipeline(modelPath = 'sample_out_dir/multi_task_model.pt', maxSeqLen = 50)
+    
+    """
+
+    def __init__(self, modelPath, maxSeqLen = 128):
         self.maxSeqLen = maxSeqLen
         self.modelPath = modelPath
         assert os.path.exists(self.modelPath), "saved model not present at {}".format(self.modelPath)
@@ -167,14 +184,73 @@ class inferPipeline:
                 
 
     def infer(self, dataList, taskNamesList, batchSize = 8, seed=42):
-        '''
-        dataList :- list(batch) of list input. 
-                    eg. [ [<sentence1>, <sentence2>], [<sentece>, <sentence>],... ]
-                        [ [<sentence>], [<sentence>], [<sentence>] ....]
 
-        taskNamesList :- list of tasks to perform on data
-                    eg. [<taskName1>, <taskName2> ,..]
-        '''
+        """
+        This is the function which can be called to get the predictions for input samples
+        for the mentioned tasks.
+
+        - Samples can be packed in a ``list of lists`` manner as the function processes inputs in batch.
+        - In case, an input sample requires sentence pair, the two sentences can be kept as elements of the list.
+        - In case of single sentence classification or NER tasks, only the first element of a sample will be used.
+        - For NER, the infer function automatically splits the sentence into tokens.
+        - All the tasks mentioned in ``taskNamesList`` are performed for all the input samples.
+
+        Args:
+
+            dataList (:obj:`list of lists`) : A batch of input samples. For eg.
+                
+                [
+                    [<sentenceA>, <sentenceB>],
+
+                    [<sentenceA>, <sentenceB>]
+
+                ]
+
+                or in case all the tasks just require single sentence inputs,
+                
+                [
+                    [<sentenceA>],
+
+                    [<sentenceA>]
+
+                ]
+
+            taskNamesList (:obj:`list`) : List of tasks to be performed on dataList samples. For eg.
+
+                ['TaskA', 'TaskB', 'TaskC']
+
+                You can choose the tasks you want to infer. For eg.
+
+                ['TaskB']
+
+            batchSize (:obj:`int`, defaults to :obj:`8`) : Batch size for running inference.
+
+
+        Return:
+
+            outList (:obj:`list of objects`) :
+                List of dictionary objects where each object contains one corresponding input sample and it's tasks outputs. The task outputs
+                can also contain the confidence scores. For eg.
+
+                [
+                    {'Query' : [<sentence>],
+
+                    'TaskA' : <TaskA output>,
+
+                    'TaskB' : <TaskB output>,
+
+                    'TaskC' : <TaskC output>}
+
+                ]
+
+        Example::
+
+            >>> samples = [ ['sample_sentence_1], ['sample_sentence_2'] ]
+            >>> tasks = ['TaskA', 'TaskB']
+            >>> pipe.infer(samples, tasks)
+
+        """
+
         #print(dataList)
         #print(taskNamesList)
         allTasksList = []

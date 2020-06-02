@@ -10,6 +10,26 @@ SEED = 42
 
 def bio_ner_to_tsv(dataDir, readFile, wrtDir, transParamDict, isTrainFile=False):
 
+    """
+    This function transforms the BIO style data and transforms into the tsv format required
+    for NER. Following transformed files are written at wrtDir,
+
+    - NER transformed tsv file.
+    - NER label map joblib file.
+
+    Args:
+        dataDir (:obj:`str`) : Path to the directory where the raw data files to be read are present..
+        readFile (:obj:`str`) : This is the file which is currently being read and transformed by the function.
+        wrtDir (:obj:`str`) : Path to the directory where to save the transformed tsv files.
+        transParamDict (:obj:`dict`, defaults to :obj:`None`): Dictionary requiring the following parameters as key-value
+            
+            - ``save_prefix`` (defaults to 'bio_ner') : save file name prefix.
+            - ``col_sep`` : (defaults to " ") : separator for columns
+            - ``tag_col`` (defaults to 1) : column number where label NER tag is present for each row. Counting starts from 0.
+            - ``sen_sep`` (defaults to " ") : end of sentence separator. 
+    
+    """
+
     transParamDict.setdefault("save_prefix", "bio_ner")
     transParamDict.setdefault("tag_col", 1)
     transParamDict.setdefault("col_sep", " ")
@@ -65,6 +85,25 @@ def bio_ner_to_tsv(dataDir, readFile, wrtDir, transParamDict, isTrainFile=False)
     print('Median len of sentences: ', median(senLens))    
 
 def snips_intent_ner_to_tsv(dataDir, readFile, wrtDir, transParamDict, isTrainFile=False):
+
+    """
+    This function transforms the data present in snips_data/. 
+    Raw data is in BIO tagged format with the sentence intent specified at the end of each sentence.
+    The transformation function converts the each raw data file into two separate tsv files,
+    one for intent classification task and another for NER task. Following transformed files are written at wrtDir
+
+    - NER transformed tsv file.
+    - NER label map joblib file.
+    - intent transformed tsv file.
+    - intent label map joblib file.
+
+    Args:
+        dataDir (:obj:`str`) : Path to the directory where the raw data files to be read are present..
+        readFile (:obj:`str`) : This is the file which is currently being read and transformed by the function.
+        wrtDir (:obj:`str`) : Path to the directory where to save the transformed tsv files.
+        transParamDict (:obj:`dict`, defaults to :obj:`None`): Dictionary of function specific parameters. Not required for this transformation function.
+
+    """
 
     f = open(os.path.join(dataDir,readFile))
 
@@ -128,6 +167,7 @@ def snips_intent_ner_to_tsv(dataDir, readFile, wrtDir, transParamDict, isTrainFi
     
 
 def coNLL_ner_pos_to_tsv(dataDir, readFile, wrtDir, transParamDict, isTrainFile=False):
+
     
     f = open(os.path.join(dataDir, readFile))
 
@@ -197,6 +237,23 @@ def coNLL_ner_pos_to_tsv(dataDir, readFile, wrtDir, transParamDict, isTrainFile=
     print('Median len of sentences: ', median(senLens))
 
 def snli_entailment_to_tsv(dataDir, readFile, wrtDir, transParamDict, isTrainFile=False):
+
+    """
+    This function transforms the SNLI entailment data available at `SNLI <https://nlp.stanford.edu/projects/snli/snli_1.0.zip>`_ 
+    for sentence pair entailment task. Contradiction and neutral labels are mapped to 0 representing non-entailment scenario. Only 
+    entailment label is mapped to 1, representing an entailment scenario. Following transformed files are written at wrtDir
+
+    - Sentence pair transformed tsv file for entailment task
+
+
+    Args:
+        dataDir (:obj:`str`) : Path to the directory where the raw data files to be read are present..
+        readFile (:obj:`str`) : This is the file which is currently being read and transformed by the function.
+        wrtDir (:obj:`str`) : Path to the directory where to save the transformed tsv files.
+        transParamDict (:obj:`dict`, defaults to :obj:`None`): Dictionary of function specific parameters. Not required for this transformation function.
+
+
+    """
 
     mapping = {"contradiction" : 0, "neutral" : 0, "entailment" : 1}
     f = open(os.path.join(dataDir, readFile))
@@ -283,6 +340,29 @@ def validate_sequences(sequence_dict, seq_len_right, seq_len_left):
 
 def fragment_detection_to_tsv(dataDir, readFile, wrtDir, transParamDict, isTrainFile=False):
 
+    """
+    This function transforms data for fragment detection task (detecting whether a sentence is incomplete/fragment or not).
+    It takes data in single sentence classification format and creates fragment samples from the sentences.
+    Following transformed files are written at wrtDir
+
+    - Fragment transformed tsv file containing fragment/non-fragment sentences and labels
+
+    In the transformed file, label 1 and 0 represent fragment and non-fragment sentence respectively.
+
+    Args:
+        dataDir (:obj:`str`) : Path to the directory where the raw data files to be read are present..
+        readFile (:obj:`str`) : This is the file which is currently being read and transformed by the function.
+        wrtDir (:obj:`str`) : Path to the directory where to save the transformed tsv files.
+        transParamDict (:obj:`dict`, defaults to :obj:`None`): Dictionary requiring the following parameters as key-value
+            
+            - ``data_frac`` (defaults to 0.2) : Fraction of data to consider for making fragments.
+            - ``seq_len_right`` : (defaults to 3) : Right window length for making n-grams.
+            - ``seq_len_left`` (defaults to 2) : Left window length for making n-grams.
+            - ``sep`` (defaults to "\t") : column separator for input file.
+            - ``query_col`` (defaults to 2) : column number containing sentences. Counting starts from 0.
+
+    """
+
     transParamDict.setdefault("data_frac", 0.2)
     transParamDict.setdefault("seq_len_right", 3)
     transParamDict.setdefault("seq_len_left", 2)
@@ -314,6 +394,25 @@ def fragment_detection_to_tsv(dataDir, readFile, wrtDir, transParamDict, isTrain
                 index=False, header=False)
 
 def msmarco_query_type_to_tsv(dataDir, readFile, wrtDir, transParamDict, isTrainFile=False):
+
+    """
+    This function transforms the MSMARCO QnA data available at `MSMARCO_QnA <https://microsoft.github.io/msmarco/>`_ 
+    for query-type detection task (given a query sentence, detect what type of answer is expected). Queries are divided
+    into 5 query types - NUMERIC, LOCATION, ENTITY, DESCRIPTION, PERSON. The function transforms the json data
+    to standard single sentence classification type tsv data. Following transformed files are written at wrtDir
+
+    - Query type transformed tsv data file.
+    - Query type label map joblib file.
+
+    Args:
+        dataDir (:obj:`str`) : Path to the directory where the raw data files to be read are present..
+        readFile (:obj:`str`) : This is the file which is currently being read and transformed by the function.
+        wrtDir (:obj:`str`) : Path to the directory where to save the transformed tsv files.
+        transParamDict (:obj:`dict`, defaults to :obj:`None`): Dictionary requiring the following parameters as key-value
+            
+            - ``data_frac`` (defaults to 0.05) : Fraction of data to consider for downsampling.
+
+    """
     
     transParamDict.setdefault("data_frac", 0.05)
 

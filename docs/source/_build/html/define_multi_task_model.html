@@ -1,0 +1,289 @@
+
+
+<!DOCTYPE html>
+<!--[if IE 8]><html class="no-js lt-ie9" lang="en" > <![endif]-->
+<!--[if gt IE 8]><!--> <html class="no-js" lang="en" > <!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  
+  <title>How to define your multi-task model? &mdash; multi-task-NLP 0.0.1 documentation</title>
+  
+
+  
+  
+  
+  
+
+  
+  <script type="text/javascript" src="_static/js/modernizr.min.js"></script>
+  
+    
+      <script type="text/javascript" id="documentation_options" data-url_root="./" src="_static/documentation_options.js"></script>
+        <script type="text/javascript" src="_static/jquery.js"></script>
+        <script type="text/javascript" src="_static/underscore.js"></script>
+        <script type="text/javascript" src="_static/doctools.js"></script>
+        <script type="text/javascript" src="_static/language_data.js"></script>
+    
+    <script type="text/javascript" src="_static/js/theme.js"></script>
+
+    
+
+  
+  <link rel="stylesheet" href="_static/css/theme.css" type="text/css" />
+  <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="How to train?" href="training.html" />
+    <link rel="prev" title="Shared Encoder" href="shared_encoder.html" /> 
+</head>
+
+<body class="wy-body-for-nav">
+
+   
+  <div class="wy-grid-for-nav">
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+          
+
+          
+            <a href="index.html" class="icon icon-home"> multi-task-NLP
+          
+
+          
+          </a>
+
+          
+            
+            
+          
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+
+          
+        </div>
+
+        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+          
+            
+            
+              
+            
+            
+              <ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="task_formats.html">Task Formats</a></li>
+<li class="toctree-l1"><a class="reference internal" href="data_transformations.html">Data transformations</a></li>
+<li class="toctree-l1"><a class="reference internal" href="shared_encoder.html">Shared Encoder</a></li>
+<li class="toctree-l1 current"><a class="current reference internal" href="#">How to define your multi-task model?</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#task-file-parameters">Task file parameters</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="training.html">How to train?</a></li>
+<li class="toctree-l1"><a class="reference internal" href="infering.html">How to Infer?</a></li>
+</ul>
+
+            
+          
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" aria-label="top navigation">
+        
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="index.html">multi-task-NLP</a>
+        
+      </nav>
+
+
+      <div class="wy-nav-content">
+        
+        <div class="rst-content">
+        
+          
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div role="navigation" aria-label="breadcrumbs navigation">
+
+  <ul class="wy-breadcrumbs">
+    
+      <li><a href="index.html">Docs</a> &raquo;</li>
+        
+      <li>How to define your multi-task model?</li>
+    
+    
+      <li class="wy-breadcrumbs-aside">
+        
+            
+            <a href="_sources/define_multi_task_model.rst.txt" rel="nofollow"> View page source</a>
+          
+        
+      </li>
+    
+  </ul>
+
+  
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+            
+  <div class="section" id="how-to-define-your-multi-task-model">
+<h1>How to define your multi-task model?<a class="headerlink" href="#how-to-define-your-multi-task-model" title="Permalink to this headline">¶</a></h1>
+<p>Let’s consider you have three tasks - <strong>TaskA</strong>, <strong>TaskB</strong> and <strong>TaskC</strong> to train together. TaskA is single sentence classification type,
+TaskB is NER type and TaskC is sentence pair classification type.
+You can define a task file mentioning the required details about the task in following YAML format.</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">TaskA</span><span class="p">:</span>
+  <span class="n">model_type</span><span class="p">:</span> <span class="n">BERT</span>
+  <span class="n">config_name</span><span class="p">:</span> <span class="n">bert</span><span class="o">-</span><span class="n">base</span><span class="o">-</span><span class="n">uncased</span>
+  <span class="n">dropout_prob</span><span class="p">:</span> <span class="mf">0.05</span>
+  <span class="n">label_map_or_file</span><span class="p">:</span>
+  <span class="o">-</span><span class="n">label1</span>
+  <span class="o">-</span><span class="n">label2</span>
+  <span class="o">-</span><span class="n">label3</span>
+  <span class="n">metrics</span><span class="p">:</span>
+  <span class="o">-</span> <span class="n">accuracy</span>
+  <span class="n">loss_type</span><span class="p">:</span> <span class="n">CrossEntropyLoss</span>
+  <span class="n">task_type</span><span class="p">:</span> <span class="n">SingleSenClassification</span>
+  <span class="n">file_names</span><span class="p">:</span>
+  <span class="o">-</span> <span class="n">taskA_train</span><span class="o">.</span><span class="n">tsv</span>
+  <span class="o">-</span> <span class="n">taskA_dev</span><span class="o">.</span><span class="n">tsv</span>
+  <span class="o">-</span> <span class="n">taskA_test</span><span class="o">.</span><span class="n">tsv</span>
+
+<span class="n">TaskB</span><span class="p">:</span>
+  <span class="n">model_type</span><span class="p">:</span> <span class="n">BERT</span>
+  <span class="n">config_name</span><span class="p">:</span> <span class="n">bert</span><span class="o">-</span><span class="n">base</span><span class="o">-</span><span class="n">uncased</span>
+  <span class="n">dropout_prob</span><span class="p">:</span> <span class="mf">0.3</span>
+  <span class="n">label_map_or_file</span><span class="p">:</span> <span class="n">data</span><span class="o">/</span><span class="n">taskB_train_label_map</span><span class="o">.</span><span class="n">joblib</span>
+  <span class="n">metrics</span><span class="p">:</span>
+  <span class="o">-</span> <span class="n">seq_f1</span>
+  <span class="o">-</span> <span class="n">seq_precision</span>
+  <span class="o">-</span> <span class="n">seq_recall</span>
+  <span class="n">loss_type</span><span class="p">:</span> <span class="n">NERLoss</span>
+  <span class="n">task_type</span><span class="p">:</span> <span class="n">NER</span>
+  <span class="n">file_names</span><span class="p">:</span>
+  <span class="o">-</span> <span class="n">taskB_train</span><span class="o">.</span><span class="n">tsv</span>
+  <span class="o">-</span> <span class="n">taskB_dev</span><span class="o">.</span><span class="n">tsv</span>
+  <span class="o">-</span> <span class="n">taskB_test</span><span class="o">.</span><span class="n">tsv</span>
+
+<span class="n">TaskC</span><span class="p">:</span>
+  <span class="n">model_type</span><span class="p">:</span> <span class="n">BERT</span>
+  <span class="n">config_name</span><span class="p">:</span> <span class="n">bert</span><span class="o">-</span><span class="n">base</span><span class="o">-</span><span class="n">uncased</span>
+  <span class="n">dropout_prob</span><span class="p">:</span> <span class="mf">0.05</span>
+  <span class="n">metrics</span><span class="p">:</span>
+  <span class="o">-</span> <span class="n">accuracy</span>
+  <span class="n">loss_type</span><span class="p">:</span> <span class="n">CrossEntropyLoss</span>
+  <span class="n">class_num</span><span class="p">:</span> <span class="mi">2</span>
+  <span class="n">task_type</span><span class="p">:</span> <span class="n">SentencePairClassification</span>
+  <span class="n">file_names</span><span class="p">:</span>
+  <span class="o">-</span> <span class="n">taskC_train</span><span class="o">.</span><span class="n">tsv</span>
+  <span class="o">-</span> <span class="n">taskC_dev</span><span class="o">.</span><span class="n">tsv</span>
+  <span class="o">-</span> <span class="n">taskC_test</span><span class="o">.</span><span class="n">tsv</span>
+</pre></div>
+</div>
+<p>Few points to keep in mind while making the task file,</p>
+<ul class="simple">
+<li>You can keep the tasks which you want to train a single model for in this file.</li>
+<li>The file can have either a single task or multiple tasks. In case only a single task is mentioned, the model will act like single-task model.</li>
+<li>The task names (TaskA, TaskB and TaskC) are unique identifiers for the task, hence the task names must always be distinct.</li>
+<li>The model type for all the tasks mentioned in the file must be the same, as the library uses a single shared encoder model for all these tasks.</li>
+</ul>
+<div class="section" id="task-file-parameters">
+<h2>Task file parameters<a class="headerlink" href="#task-file-parameters" title="Permalink to this headline">¶</a></h2>
+<p>Detailed description of the parameters available in the task file.</p>
+<ul class="simple">
+<li><code class="docutils literal notranslate"><span class="pre">task_type</span></code> <cite>(required)</cite> :  Format of the task as described in <a class="reference internal" href="task_formats.html#task-types"><span class="std std-ref">Task types</span></a></li>
+<li><code class="docutils literal notranslate"><span class="pre">file_names</span></code> <cite>(required)</cite> : List of standard data tsv file names required for task. The first file is considered as <strong>train</strong> file, second file as <strong>dev</strong> file and the third file as <strong>test</strong> file.</li>
+<li><code class="docutils literal notranslate"><span class="pre">model_type</span></code> <cite>(required)</cite> : Type of shared encoder model to use. The model type for all the tasks mentioned in the file must be the same. You can refer <a class="reference internal" href="shared_encoder.html#choice-of-shared-encoder"><span class="std std-ref">Model type</span></a> for selecting model type.</li>
+<li><code class="docutils literal notranslate"><span class="pre">config_name</span></code> <cite>(optional)</cite> : Config of the encoder model. You can refer <a class="reference internal" href="shared_encoder.html#choice-of-shared-encoder"><span class="std std-ref">Model type</span></a> for selecting the model type config. In case this parameter is not present, default config will be used.</li>
+<li><code class="docutils literal notranslate"><span class="pre">class_num</span></code>  <cite>(required/optional)</cite> : Number of classes present for classification. This parameter is optional if label_map_or_file is provided, required otherwise.</li>
+<li><code class="docutils literal notranslate"><span class="pre">label_map_or_file</span></code>  <cite>(required/optional)</cite> :<ul>
+<li>In case labels are strings, this is the list of unique labels.</li>
+<li>You can also give a joblib dumped dictionary map file like {‘label1’:0, ‘label2’:1, ..}.</li>
+<li>If you’re using <a class="reference internal" href="data_transformations.html#data-transformations"><span class="std std-ref">Data Transformations</span></a> to create the data files, path to the label_map file created along with transformed files is to be given here.</li>
+</ul>
+</li>
+<li><code class="docutils literal notranslate"><span class="pre">loss_type</span></code> <cite>(required)</cite> : Type of loss for training as defined in <a class="reference internal" href="shared_encoder.html#losses"><span class="std std-ref">Losses</span></a>.</li>
+<li><code class="docutils literal notranslate"><span class="pre">dropout_prob</span></code> <cite>(optional)</cite>: Dropout probability to use between encoder hidden outputs and task specific headers.</li>
+<li><code class="docutils literal notranslate"><span class="pre">metrics</span></code> <cite>(optional)</cite> : List of metrics to use during evaluation as defined in <a class="reference internal" href="shared_encoder.html#metrics"><span class="std std-ref">Metrics</span></a>.</li>
+<li><code class="docutils literal notranslate"><span class="pre">loss_weight</span></code> <cite>(optional)</cite>: Loss weight value (between 0 to 1) for individual task.</li>
+</ul>
+</div>
+</div>
+
+
+           </div>
+           
+          </div>
+          <footer>
+  
+    <div class="rst-footer-buttons" role="navigation" aria-label="footer navigation">
+      
+        <a href="training.html" class="btn btn-neutral float-right" title="How to train?" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right"></span></a>
+      
+      
+        <a href="shared_encoder.html" class="btn btn-neutral float-left" title="Shared Encoder" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left"></span> Previous</a>
+      
+    </div>
+  
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>
+        &copy; Copyright 2020, saransh mehta
+
+    </p>
+  </div>
+  Built with <a href="http://sphinx-doc.org/">Sphinx</a> using a <a href="https://github.com/rtfd/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>. 
+
+</footer>
+
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+  
+
+
+  <script type="text/javascript">
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script>
+
+  
+  
+    
+   
+
+</body>
+</html>

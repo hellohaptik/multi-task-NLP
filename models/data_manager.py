@@ -224,11 +224,6 @@ class batchUtils:
 
             if taskType in (TaskType.SingleSenClassification, TaskType.SentencePairClassification, TaskType.NER):
                 batchData.append(torch.LongTensor(labels))
-            elif taskType == TaskType.Span:
-                #in this case we will have a start and end instead of label
-                start = [sample['start_position'] for sample in batch]
-                end = [sample['end_position'] for sample in batch]
-                batchData.append((torch.LongTensor(start), torch.LongTensor(end)))
 
             #position for label
             batchMetaData['label_pos'] = len(batchData) - 1
@@ -237,13 +232,6 @@ class batchUtils:
             # so metric evaluation can be done
             #batchData :- [tokenIdsBatchTensor, typeIdsBatchTensor, MasksBatchTensor]
             batchMetaData['label'] = labels
-            if taskType == TaskType.Span:
-                batchMetaData['token_to_orig_map'] = [sample['token_to_orig_map'] for sample in batch]
-                batchMetaData['token_is_max_context'] = [sample['token_is_max_context'] for sample in batch]
-                batchMetaData['doc_offset'] = [sample['doc_offset'] for sample in batch]
-                batchMetaData['doc'] = [sample['doc'] for sample in batch]
-                batchMetaData['tokens'] = [sample['tokens'] for sample in batch]
-                batchMetaData['answer'] = [sample['answer'] for sample in batch]
 
         batchMetaData['uids'] = [sample['uid'] for sample in batch]  # used in scoring
         return batchMetaData, batchData

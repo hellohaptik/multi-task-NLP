@@ -59,7 +59,7 @@ def make_arguments(parser):
                         help = "Only write logs to file if True")
     parser.add_argument('--seed', default=42, type = int,
                         help = "seed to set for modules")
-    parser.add_argument('--max_seq_len', default=384, type =int,
+    parser.add_argument('--max_seq_len', default=128, type =int,
                         help = "max seq length used for model at time of data preparation")
     parser.add_argument('--tensorboard', default=True, type = bool,
                         help = "To create tensorboard logs")

@@ -1,0 +1,373 @@
+
+
+<!DOCTYPE html>
+<!--[if IE 8]><html class="no-js lt-ie9" lang="en" > <![endif]-->
+<!--[if gt IE 8]><!--> <html class="no-js" lang="en" > <!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  
+  <title>Data transformations &mdash; multi-task-NLP 0.0.1 documentation</title>
+  
+
+  
+  
+  
+  
+
+  
+  <script type="text/javascript" src="_static/js/modernizr.min.js"></script>
+  
+    
+      <script type="text/javascript" id="documentation_options" data-url_root="./" src="_static/documentation_options.js"></script>
+        <script type="text/javascript" src="_static/jquery.js"></script>
+        <script type="text/javascript" src="_static/underscore.js"></script>
+        <script type="text/javascript" src="_static/doctools.js"></script>
+        <script type="text/javascript" src="_static/language_data.js"></script>
+    
+    <script type="text/javascript" src="_static/js/theme.js"></script>
+
+    
+
+  
+  <link rel="stylesheet" href="_static/css/theme.css" type="text/css" />
+  <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="Shared Encoder" href="shared_encoder.html" />
+    <link rel="prev" title="Task Formats" href="task_formats.html" /> 
+</head>
+
+<body class="wy-body-for-nav">
+
+   
+  <div class="wy-grid-for-nav">
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+          
+
+          
+            <a href="index.html" class="icon icon-home"> multi-task-NLP
+          
+
+          
+          </a>
+
+          
+            
+            
+          
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+
+          
+        </div>
+
+        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+          
+            
+            
+              
+            
+            
+              <ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="task_formats.html">Task Formats</a></li>
+<li class="toctree-l1 current"><a class="current reference internal" href="#">Data transformations</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#transform-functions">Transform Functions</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#module-utils.tranform_functions">Sample Transform Function</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="shared_encoder.html">Shared Encoder</a></li>
+<li class="toctree-l1"><a class="reference internal" href="define_multi_task_model.html">How to define your multi-task model?</a></li>
+<li class="toctree-l1"><a class="reference internal" href="training.html">How to train?</a></li>
+<li class="toctree-l1"><a class="reference internal" href="infering.html">How to Infer?</a></li>
+</ul>
+
+            
+          
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" aria-label="top navigation">
+        
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="index.html">multi-task-NLP</a>
+        
+      </nav>
+
+
+      <div class="wy-nav-content">
+        
+        <div class="rst-content">
+        
+          
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div role="navigation" aria-label="breadcrumbs navigation">
+
+  <ul class="wy-breadcrumbs">
+    
+      <li><a href="index.html">Docs</a> &raquo;</li>
+        
+      <li>Data transformations</li>
+    
+    
+      <li class="wy-breadcrumbs-aside">
+        
+            
+            <a href="_sources/data_transformations.rst.txt" rel="nofollow"> View page source</a>
+          
+        
+      </li>
+    
+  </ul>
+
+  
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+            
+  <div class="section" id="data-transformations">
+<h1>Data transformations<a class="headerlink" href="#data-transformations" title="Permalink to this headline">¶</a></h1>
+<p>It is very likely that the data you have is not in the format as required by the library.
+Hence, data transformations provide a way to convert data in raw form to standard tsv format required.</p>
+<div class="section" id="transform-functions">
+<h2>Transform Functions<a class="headerlink" href="#transform-functions" title="Permalink to this headline">¶</a></h2>
+<p>Transform functions are the functions which can be used for performing transformations.
+Each function is defined to take raw data in certain format, perform the defined transformation steps and
+create the respective <code class="docutils literal notranslate"><span class="pre">tsv</span></code> file.</p>
+</div>
+<div class="section" id="module-utils.tranform_functions">
+<span id="sample-transform-function"></span><h2>Sample Transform Function<a class="headerlink" href="#module-utils.tranform_functions" title="Permalink to this headline">¶</a></h2>
+<dl class="function">
+<dt id="utils.tranform_functions.snips_intent_ner_to_tsv">
+<code class="descclassname">utils.tranform_functions.</code><code class="descname">snips_intent_ner_to_tsv</code><span class="sig-paren">(</span><em>dataDir</em>, <em>readFile</em>, <em>wrtDir</em>, <em>transParamDict</em>, <em>isTrainFile=False</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/utils/tranform_functions.html#snips_intent_ner_to_tsv"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#utils.tranform_functions.snips_intent_ner_to_tsv" title="Permalink to this definition">¶</a></dt>
+<dd><p>This function transforms the data present in snips_data/.
+Raw data is in BIO tagged format with the sentence intent specified at the end of each sentence.
+The transformation function converts the each raw data file into two separate tsv files,
+one for intent classification task and another for NER task. Following transformed files are written at wrtDir</p>
+<ul class="simple">
+<li>NER transformed tsv file.</li>
+<li>NER label map joblib file.</li>
+<li>intent transformed tsv file.</li>
+<li>intent label map joblib file.</li>
+</ul>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
+<li><strong>dataDir</strong> (<code class="xref py py-obj docutils literal notranslate"><span class="pre">str</span></code>) – Path to the directory where the raw data files to be read are present..</li>
+<li><strong>readFile</strong> (<code class="xref py py-obj docutils literal notranslate"><span class="pre">str</span></code>) – This is the file which is currently being read and transformed by the function.</li>
+<li><strong>wrtDir</strong> (<code class="xref py py-obj docutils literal notranslate"><span class="pre">str</span></code>) – Path to the directory where to save the transformed tsv files.</li>
+<li><strong>transParamDict</strong> (<code class="xref py py-obj docutils literal notranslate"><span class="pre">dict</span></code>, defaults to <code class="xref py py-obj docutils literal notranslate"><span class="pre">None</span></code>) – Dictionary of function specific parameters. Not required for this transformation function.</li>
+</ul>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="function">
+<dt id="utils.tranform_functions.bio_ner_to_tsv">
+<code class="descclassname">utils.tranform_functions.</code><code class="descname">bio_ner_to_tsv</code><span class="sig-paren">(</span><em>dataDir</em>, <em>readFile</em>, <em>wrtDir</em>, <em>transParamDict</em>, <em>isTrainFile=False</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/utils/tranform_functions.html#bio_ner_to_tsv"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#utils.tranform_functions.bio_ner_to_tsv" title="Permalink to this definition">¶</a></dt>
+<dd><p>This function transforms the BIO style data and transforms into the tsv format required
+for NER. Following transformed files are written at wrtDir,</p>
+<ul class="simple">
+<li>NER transformed tsv file.</li>
+<li>NER label map joblib file.</li>
+</ul>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
+<li><strong>dataDir</strong> (<code class="xref py py-obj docutils literal notranslate"><span class="pre">str</span></code>) – Path to the directory where the raw data files to be read are present..</li>
+<li><strong>readFile</strong> (<code class="xref py py-obj docutils literal notranslate"><span class="pre">str</span></code>) – This is the file which is currently being read and transformed by the function.</li>
+<li><strong>wrtDir</strong> (<code class="xref py py-obj docutils literal notranslate"><span class="pre">str</span></code>) – Path to the directory where to save the transformed tsv files.</li>
+<li><strong>transParamDict</strong> (<code class="xref py py-obj docutils literal notranslate"><span class="pre">dict</span></code>, defaults to <code class="xref py py-obj docutils literal notranslate"><span class="pre">None</span></code>) – <p>Dictionary requiring the following parameters as key-value</p>
+<ul>
+<li><code class="docutils literal notranslate"><span class="pre">save_prefix</span></code> (defaults to ‘bio_ner’) : save file name prefix.</li>
+<li><code class="docutils literal notranslate"><span class="pre">col_sep</span></code> : (defaults to ” “) : separator for columns</li>
+<li><code class="docutils literal notranslate"><span class="pre">tag_col</span></code> (defaults to 1) : column number where label NER tag is present for each row. Counting starts from 0.</li>
+<li><code class="docutils literal notranslate"><span class="pre">sen_sep</span></code> (defaults to ” “) : end of sentence separator.</li>
+</ul>
+</li>
+</ul>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="function">
+<dt id="utils.tranform_functions.snli_entailment_to_tsv">
+<code class="descclassname">utils.tranform_functions.</code><code class="descname">snli_entailment_to_tsv</code><span class="sig-paren">(</span><em>dataDir</em>, <em>readFile</em>, <em>wrtDir</em>, <em>transParamDict</em>, <em>isTrainFile=False</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/utils/tranform_functions.html#snli_entailment_to_tsv"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#utils.tranform_functions.snli_entailment_to_tsv" title="Permalink to this definition">¶</a></dt>
+<dd><p>This function transforms the SNLI entailment data available at <a class="reference external" href="https://nlp.stanford.edu/projects/snli/snli_1.0.zip">SNLI</a>
+for sentence pair entailment task. Contradiction and neutral labels are mapped to 0 representing non-entailment scenario. Only
+entailment label is mapped to 1, representing an entailment scenario. Following transformed files are written at wrtDir</p>
+<ul class="simple">
+<li>Sentence pair transformed tsv file for entailment task</li>
+</ul>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
+<li><strong>dataDir</strong> (<code class="xref py py-obj docutils literal notranslate"><span class="pre">str</span></code>) – Path to the directory where the raw data files to be read are present..</li>
+<li><strong>readFile</strong> (<code class="xref py py-obj docutils literal notranslate"><span class="pre">str</span></code>) – This is the file which is currently being read and transformed by the function.</li>
+<li><strong>wrtDir</strong> (<code class="xref py py-obj docutils literal notranslate"><span class="pre">str</span></code>) – Path to the directory where to save the transformed tsv files.</li>
+<li><strong>transParamDict</strong> (<code class="xref py py-obj docutils literal notranslate"><span class="pre">dict</span></code>, defaults to <code class="xref py py-obj docutils literal notranslate"><span class="pre">None</span></code>) – Dictionary of function specific parameters. Not required for this transformation function.</li>
+</ul>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="function">
+<dt id="utils.tranform_functions.fragment_detection_to_tsv">
+<code class="descclassname">utils.tranform_functions.</code><code class="descname">fragment_detection_to_tsv</code><span class="sig-paren">(</span><em>dataDir</em>, <em>readFile</em>, <em>wrtDir</em>, <em>transParamDict</em>, <em>isTrainFile=False</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/utils/tranform_functions.html#fragment_detection_to_tsv"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#utils.tranform_functions.fragment_detection_to_tsv" title="Permalink to this definition">¶</a></dt>
+<dd><p>This function transforms data for fragment detection task (detecting whether a sentence is incomplete/fragment or not).
+It takes data in single sentence classification format and creates fragment samples from the sentences.
+Following transformed files are written at wrtDir</p>
+<ul class="simple">
+<li>Fragment transformed tsv file containing fragment/non-fragment sentences and labels</li>
+</ul>
+<p>In the transformed file, label 1 and 0 represent fragment and non-fragment sentence respectively.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
+<li><strong>dataDir</strong> (<code class="xref py py-obj docutils literal notranslate"><span class="pre">str</span></code>) – Path to the directory where the raw data files to be read are present..</li>
+<li><strong>readFile</strong> (<code class="xref py py-obj docutils literal notranslate"><span class="pre">str</span></code>) – This is the file which is currently being read and transformed by the function.</li>
+<li><strong>wrtDir</strong> (<code class="xref py py-obj docutils literal notranslate"><span class="pre">str</span></code>) – Path to the directory where to save the transformed tsv files.</li>
+<li><strong>transParamDict</strong> (<code class="xref py py-obj docutils literal notranslate"><span class="pre">dict</span></code>, defaults to <code class="xref py py-obj docutils literal notranslate"><span class="pre">None</span></code>) – <p>Dictionary requiring the following parameters as key-value</p>
+<ul>
+<li><code class="docutils literal notranslate"><span class="pre">data_frac</span></code> (defaults to 0.2) : Fraction of data to consider for making fragments.</li>
+<li><code class="docutils literal notranslate"><span class="pre">seq_len_right</span></code> : (defaults to 3) : Right window length for making n-grams.</li>
+<li><code class="docutils literal notranslate"><span class="pre">seq_len_left</span></code> (defaults to 2) : Left window length for making n-grams.</li>
+<li><code class="docutils literal notranslate"><span class="pre">sep</span></code> (defaults to ”    “) : column separator for input file.</li>
+<li><code class="docutils literal notranslate"><span class="pre">query_col</span></code> (defaults to 2) : column number containing sentences. Counting starts from 0.</li>
+</ul>
+</li>
+</ul>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="function">
+<dt id="utils.tranform_functions.msmarco_query_type_to_tsv">
+<code class="descclassname">utils.tranform_functions.</code><code class="descname">msmarco_query_type_to_tsv</code><span class="sig-paren">(</span><em>dataDir</em>, <em>readFile</em>, <em>wrtDir</em>, <em>transParamDict</em>, <em>isTrainFile=False</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/utils/tranform_functions.html#msmarco_query_type_to_tsv"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#utils.tranform_functions.msmarco_query_type_to_tsv" title="Permalink to this definition">¶</a></dt>
+<dd><p>This function transforms the MSMARCO QnA data available at <a class="reference external" href="https://microsoft.github.io/msmarco/">MSMARCO_QnA</a>
+for query-type detection task (given a query sentence, detect what type of answer is expected). Queries are divided
+into 5 query types - NUMERIC, LOCATION, ENTITY, DESCRIPTION, PERSON. The function transforms the json data
+to standard single sentence classification type tsv data. Following transformed files are written at wrtDir</p>
+<ul class="simple">
+<li>Query type transformed tsv data file.</li>
+<li>Query type label map joblib file.</li>
+</ul>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
+<li><strong>dataDir</strong> (<code class="xref py py-obj docutils literal notranslate"><span class="pre">str</span></code>) – Path to the directory where the raw data files to be read are present..</li>
+<li><strong>readFile</strong> (<code class="xref py py-obj docutils literal notranslate"><span class="pre">str</span></code>) – This is the file which is currently being read and transformed by the function.</li>
+<li><strong>wrtDir</strong> (<code class="xref py py-obj docutils literal notranslate"><span class="pre">str</span></code>) – Path to the directory where to save the transformed tsv files.</li>
+<li><strong>transParamDict</strong> (<code class="xref py py-obj docutils literal notranslate"><span class="pre">dict</span></code>, defaults to <code class="xref py py-obj docutils literal notranslate"><span class="pre">None</span></code>) – <p>Dictionary requiring the following parameters as key-value</p>
+<ul>
+<li><code class="docutils literal notranslate"><span class="pre">data_frac</span></code> (defaults to 0.05) : Fraction of data to consider for downsampling.</li>
+</ul>
+</li>
+</ul>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+</div>
+</div>
+
+
+           </div>
+           
+          </div>
+          <footer>
+  
+    <div class="rst-footer-buttons" role="navigation" aria-label="footer navigation">
+      
+        <a href="shared_encoder.html" class="btn btn-neutral float-right" title="Shared Encoder" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right"></span></a>
+      
+      
+        <a href="task_formats.html" class="btn btn-neutral float-left" title="Task Formats" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left"></span> Previous</a>
+      
+    </div>
+  
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>
+        &copy; Copyright 2020, saransh mehta
+
+    </p>
+  </div>
+  Built with <a href="http://sphinx-doc.org/">Sphinx</a> using a <a href="https://github.com/rtfd/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>. 
+
+</footer>
+
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+  
+
+
+  <script type="text/javascript">
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script>
+
+  
+  
+    
+   
+
+</body>
+</html>

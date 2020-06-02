@@ -1,0 +1,46 @@
+TaskA:
+    model_type: BERT
+    config_name: bert-base-uncased
+    dropout_prob: 0.05
+    label_map_or_file:
+    - label1
+    - label2
+    - label3
+    metrics:
+    - accuracy
+    loss_type: CrossEntropyLoss
+    task_type: SingleSenClassification
+    file_names:
+    - taskA_train.tsv
+    - taskA_dev.tsv
+    - taskA_test.tsv
+
+TaskB:
+    model_type: BERT
+    config_name: bert-base-uncased
+    dropout_prob: 0.3
+    label_map_or_file: data/taskB_train_label_map.joblib
+    metrics:
+    - seq_f1
+    - seq_precision
+    - seq_recall
+    loss_type: NERLoss
+    task_type: NER
+    file_names:
+    - taskB_train.tsv
+    - taskB_dev.tsv
+    - taskB_test.tsv
+
+TaskC:
+    model_type: BERT
+    config_name: bert-base-uncased
+    dropout_prob: 0.05
+    metrics:
+    - accuracy
+    loss_type: CrossEntropyLoss
+    class_num: 2
+    task_type: SentencePairClassification
+    file_names:
+    - taskC_train.tsv
+    - taskC_dev.tsv
+    - taskC_test.tsv

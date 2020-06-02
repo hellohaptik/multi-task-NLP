@@ -11,6 +11,12 @@ class CrossEntropyLoss(_Loss):
         self.name = name
         self.ignore_index = -1
     def forward(self, inp, target, attnMasks = None):
+        """
+        This is the standard cross entropy loss as defined in pytorch.
+        This loss should be used for single sentence or sentence pair classification tasks.
+
+        To use this loss for training, set ``loss_type`` : **CrossEntropyLoss** in task file
+        """
         loss = F.cross_entropy(inp, target, ignore_index=self.ignore_index) 
         loss *= self.alpha
         return loss
@@ -23,6 +29,14 @@ class NERLoss(_Loss):
         self.name = name
         self.ignore_index = -1  #used to return 0 loss for such values
     def forward(self, inp, target, attnMasks = None):
+
+        """
+        This loss is a modified version of cross entropy loss for NER/sequence labelling tasks.
+        This loss ignores extra ‘O’ values through attention masks.
+
+        To use this loss for training, set ``loss_type`` : **NERLoss** in task file
+        """
+        
         '''
         inp shape would be (batchSize, maxSeqlen, classNum). But for loss calculation
         we need (batchSize, classNum). Hence we will squeeze the batchSize and maxSeqlen together.

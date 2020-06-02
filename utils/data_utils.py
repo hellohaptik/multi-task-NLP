@@ -14,15 +14,12 @@ NLP_MODELS = {
 }
 LOSSES = {
     "crossentropyloss" : CrossEntropyLoss,
-    "spanloss" : SpanLoss,
     "nerloss" : NERLoss
 }
 
 METRICS = {
     "accuracy": accuracy_,
     "f1_score": f1_score_,
-    "ner_accuracy": accuracy_ner,
-    "ner_f1_score": f1_score_ner,
     "seq_f1" : seq_f1_score,
     "seq_precision" : seq_precision,
     "seq_recall" : seq_recall
@@ -49,10 +46,8 @@ class TaskType(IntEnum):
     SingleSenClassification = 1
     SentencePairClassification = 2
     NER = 3
-    Span = 4
 
 class LossType(IntEnum):
     CrossEntropyLoss = 0
-    SpanLoss = 1
-    NERLoss = 2
+    NERLoss = 1
 

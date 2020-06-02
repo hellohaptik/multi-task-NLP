@@ -17,10 +17,17 @@ This poses a real challenge for anyone who wants to build a conversational AI sy
 multi_task_NLP gives you the capability to define multiple tasks together and train a single model which simultaneously learns on all defined tasks.
 This means one can perform multiple tasks with latency and resource consumption equivalent to a single task.
 
+Quickstart Guide
+^^^^^^^^^^^^^^^^
+A quick guide to show how a single model can be trained for multiple NLI tasks in just 3 simple steps
+and with **no requirement to code!!**
 
+.. toctree::
+   quickstart
 
 Step by Step Guide
 ^^^^^^^^^^^^^^^^^^
+A complete guide explaining all the components of multi-task-NLP in sequential order.
 
 .. toctree::
    :maxdepth: 2

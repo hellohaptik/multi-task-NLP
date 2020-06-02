@@ -6,6 +6,7 @@
 
 #docs
 docs/_build
+docs/build
 
 __pycache__
 

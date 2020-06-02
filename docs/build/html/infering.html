@@ -1,0 +1,300 @@
+
+
+<!DOCTYPE html>
+<!--[if IE 8]><html class="no-js lt-ie9" lang="en" > <![endif]-->
+<!--[if gt IE 8]><!--> <html class="no-js" lang="en" > <!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  
+  <title>How to Infer? &mdash; multi-task-NLP 0.0.1 documentation</title>
+  
+
+  
+  
+  
+  
+
+  
+  <script type="text/javascript" src="_static/js/modernizr.min.js"></script>
+  
+    
+      <script type="text/javascript" id="documentation_options" data-url_root="./" src="_static/documentation_options.js"></script>
+        <script type="text/javascript" src="_static/jquery.js"></script>
+        <script type="text/javascript" src="_static/underscore.js"></script>
+        <script type="text/javascript" src="_static/doctools.js"></script>
+        <script type="text/javascript" src="_static/language_data.js"></script>
+    
+    <script type="text/javascript" src="_static/js/theme.js"></script>
+
+    
+
+  
+  <link rel="stylesheet" href="_static/css/theme.css" type="text/css" />
+  <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="prev" title="How to train?" href="training.html" /> 
+</head>
+
+<body class="wy-body-for-nav">
+
+   
+  <div class="wy-grid-for-nav">
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+          
+
+          
+            <a href="index.html" class="icon icon-home"> multi-task-NLP
+          
+
+          
+          </a>
+
+          
+            
+            
+          
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+
+          
+        </div>
+
+        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+          
+            
+            
+              
+            
+            
+              <ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="task_formats.html">Task Formats</a></li>
+<li class="toctree-l1"><a class="reference internal" href="data_transformations.html">Data transformations</a></li>
+<li class="toctree-l1"><a class="reference internal" href="shared_encoder.html">Shared Encoder</a></li>
+<li class="toctree-l1"><a class="reference internal" href="define_multi_task_model.html">How to define your multi-task model?</a></li>
+<li class="toctree-l1"><a class="reference internal" href="training.html">How to train?</a></li>
+<li class="toctree-l1 current"><a class="current reference internal" href="#">How to Infer?</a></li>
+</ul>
+
+            
+          
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" aria-label="top navigation">
+        
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="index.html">multi-task-NLP</a>
+        
+      </nav>
+
+
+      <div class="wy-nav-content">
+        
+        <div class="rst-content">
+        
+          
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div role="navigation" aria-label="breadcrumbs navigation">
+
+  <ul class="wy-breadcrumbs">
+    
+      <li><a href="index.html">Docs</a> &raquo;</li>
+        
+      <li>How to Infer?</li>
+    
+    
+      <li class="wy-breadcrumbs-aside">
+        
+            
+            <a href="_sources/infering.rst.txt" rel="nofollow"> View page source</a>
+          
+        
+      </li>
+    
+  </ul>
+
+  
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+            
+  <div class="section" id="how-to-infer">
+<h1>How to Infer?<a class="headerlink" href="#how-to-infer" title="Permalink to this headline">¶</a></h1>
+<p>Once you have a multi-task model trained on your tasks, we provide a convenient and easy way to use it for getting
+predictions on samples through the <strong>inference pipeline</strong>.</p>
+<dl class="class">
+<dt id="infer_pipeline.inferPipeline">
+<em class="property">class </em><code class="descclassname">infer_pipeline.</code><code class="descname">inferPipeline</code><span class="sig-paren">(</span><em>modelPath</em>, <em>maxSeqLen=128</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/infer_pipeline.html#inferPipeline"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#infer_pipeline.inferPipeline" title="Permalink to this definition">¶</a></dt>
+<dd><p>For running inference on samples using a trained model for say TaskA, TaskB and TaskC,
+you can import this class and load the corresponding multi-task model by making an
+object of this class with the following arguments</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
+<li><strong>modelPath</strong> (<code class="xref py py-obj docutils literal notranslate"><span class="pre">str</span></code>) – Path to the trained multi-task model for required tasks.</li>
+<li><strong>maxSeqLen</strong> (<code class="xref py py-obj docutils literal notranslate"><span class="pre">int</span></code>, defaults to <code class="xref py py-obj docutils literal notranslate"><span class="pre">128</span></code>) – maximum sequence length to be considered for samples.
+Truncating and padding will happen accordingly.</li>
+</ul>
+</td>
+</tr>
+</tbody>
+</table>
+<p>Example:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span> <span class="nn">infer_pipeline</span> <span class="k">import</span> <span class="n">inferPipeline</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">pipe</span> <span class="o">=</span> <span class="n">inferPipeline</span><span class="p">(</span><span class="n">modelPath</span> <span class="o">=</span> <span class="s1">&#39;sample_out_dir/multi_task_model.pt&#39;</span><span class="p">,</span> <span class="n">maxSeqLen</span> <span class="o">=</span> <span class="mi">50</span><span class="p">)</span>
+</pre></div>
+</div>
+<dl class="method">
+<dt id="infer_pipeline.inferPipeline.infer">
+<code class="descname">infer</code><span class="sig-paren">(</span><em>dataList</em>, <em>taskNamesList</em>, <em>batchSize=8</em>, <em>seed=42</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/infer_pipeline.html#inferPipeline.infer"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#infer_pipeline.inferPipeline.infer" title="Permalink to this definition">¶</a></dt>
+<dd><p>This is the function which can be called to get the predictions for input samples
+for the mentioned tasks.</p>
+<ul class="simple">
+<li>Samples can be packed in a <code class="docutils literal notranslate"><span class="pre">list</span> <span class="pre">of</span> <span class="pre">lists</span></code> manner as the function processes inputs in batch.</li>
+<li>In case, an input sample requires sentence pair, the two sentences can be kept as elements of the list.</li>
+<li>In case of single sentence classification or NER tasks, only the first element of a sample will be used.</li>
+<li>For NER, the infer function automatically splits the sentence into tokens.</li>
+<li>All the tasks mentioned in <code class="docutils literal notranslate"><span class="pre">taskNamesList</span></code> are performed for all the input samples.</li>
+</ul>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>dataList</strong> (<code class="xref py py-obj docutils literal notranslate"><span class="pre">list</span> <span class="pre">of</span> <span class="pre">lists</span></code>) – <p>A batch of input samples. For eg.</p>
+<dl class="docutils">
+<dt>[</dt>
+<dd>[&lt;sentenceA&gt;, &lt;sentenceB&gt;],<p class="last">[&lt;sentenceA&gt;, &lt;sentenceB&gt;]</p>
+</dd>
+</dl>
+<p>]</p>
+<p>or in case all the tasks just require single sentence inputs,</p>
+<dl class="docutils">
+<dt>[</dt>
+<dd>[&lt;sentenceA&gt;],<p class="last">[&lt;sentenceA&gt;]</p>
+</dd>
+</dl>
+<p>]</p>
+</li>
+<li><strong>taskNamesList</strong> (<code class="xref py py-obj docutils literal notranslate"><span class="pre">list</span></code>) – <p>List of tasks to be performed on dataList samples. For eg.</p>
+<p>[‘TaskA’, ‘TaskB’, ‘TaskC’]</p>
+<p>You can choose the tasks you want to infer. For eg.</p>
+<p>[‘TaskB’]</p>
+</li>
+<li><strong>batchSize</strong> (<code class="xref py py-obj docutils literal notranslate"><span class="pre">int</span></code>, defaults to <code class="xref py py-obj docutils literal notranslate"><span class="pre">8</span></code>) – Batch size for running inference.</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first"><p>List of dictionary objects where each object contains one corresponding input sample and it’s tasks outputs. The task outputs
+can also contain the confidence scores. For eg.</p>
+<dl class="docutils">
+<dt>[</dt>
+<dd><p class="first">{‘Query’ : [&lt;sentence&gt;],</p>
+<p>’TaskA’ : &lt;TaskA output&gt;,</p>
+<p>’TaskB’ : &lt;TaskB output&gt;,</p>
+<p class="last">’TaskC’ : &lt;TaskC output&gt;}</p>
+</dd>
+</dl>
+<p>]</p>
+</p>
+</td>
+</tr>
+<tr class="field-odd field"><th class="field-name">Return type:</th><td class="field-body"><p class="first last">outList (<code class="xref py py-obj docutils literal notranslate"><span class="pre">list</span> <span class="pre">of</span> <span class="pre">objects</span></code>)</p>
+</td>
+</tr>
+</tbody>
+</table>
+<p>Example:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">samples</span> <span class="o">=</span> <span class="p">[</span> <span class="p">[</span><span class="s1">&#39;sample_sentence_1], [&#39;</span><span class="n">sample_sentence_2</span><span class="s1">&#39;] ]</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">tasks</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;TaskA&#39;</span><span class="p">,</span> <span class="s1">&#39;TaskB&#39;</span><span class="p">]</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">pipe</span><span class="o">.</span><span class="n">infer</span><span class="p">(</span><span class="n">samples</span><span class="p">,</span> <span class="n">tasks</span><span class="p">)</span>
+</pre></div>
+</div>
+</dd></dl>
+
+</dd></dl>
+
+</div>
+
+
+           </div>
+           
+          </div>
+          <footer>
+  
+    <div class="rst-footer-buttons" role="navigation" aria-label="footer navigation">
+      
+      
+        <a href="training.html" class="btn btn-neutral float-left" title="How to train?" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left"></span> Previous</a>
+      
+    </div>
+  
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>
+        &copy; Copyright 2020, saransh mehta
+
+    </p>
+  </div>
+  Built with <a href="http://sphinx-doc.org/">Sphinx</a> using a <a href="https://github.com/rtfd/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>. 
+
+</footer>
+
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+  
+
+
+  <script type="text/javascript">
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script>
+
+  
+  
+    
+   
+
+</body>
+</html>

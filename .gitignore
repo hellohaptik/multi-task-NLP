@@ -5,7 +5,7 @@
 .ipynb_checkpoints
 
 #docs
-docs/build
+docs/_build
 
 __pycache__
 

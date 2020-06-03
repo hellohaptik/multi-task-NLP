@@ -55,7 +55,7 @@ def make_arguments(parser):
                         help = "name of log file to store")
     parser.add_argument('--log_per_updates', default = 10, type = int,
                         help = "number of steps after which to log loss")
-    parser.add_argument('--silent', type = bool, default = False,
+    parser.add_argument('--silent', type = bool, default = True,
                         help = "Only write logs to file if True")
     parser.add_argument('--seed', default=42, type = int,
                         help = "seed to set for modules")
@@ -65,6 +65,8 @@ def make_arguments(parser):
                         help = "To create tensorboard logs")
     parser.add_argument('--save_per_updates', default = 0, type = int,
                         help = "to keep saving model after this number of updates")
+    parser.add_argument('--limit_save', default = 10, type = int,
+                        help = "max number recent checkpoints to keep saved")
     parser.add_argument('--load_saved_model', type=str, default=None,
                         help="path to the saved model in case of loading from saved")
     parser.add_argument('--resume_train', type=bool, default=False, 
@@ -85,13 +87,15 @@ if not os.path.isdir(logDir):
 logger = make_logger(name = "multi_task", debugMode=args.debug_mode,
                     logFile=os.path.join(logDir, args.log_file), silent=args.silent)
 logger.info("logger created.")
-                    
+
+device = torch.device('cpu')       
 #setting seed
 random.seed(args.seed)
 np.random.seed(args.seed)
 torch.manual_seed(args.seed)
 if torch.cuda.is_available():
     torch.cuda.manual_seed_all(args.seed)
+    device = torch.device('cuda')
 
 assert os.path.isdir(args.data_dir), "data_dir doesn't exists"
 assert os.path.exists(args.task_file), "task_file doesn't exists"
@@ -147,7 +151,7 @@ def main():
     # loading if load_saved_model
     if args.load_saved_model is not None:
         assert os.path.exists(args.load_saved_model), "saved model not present at {}".format(args.load_saved_model)
-        loadedDict = torch.load(args.load_saved_model)
+        loadedDict = torch.load(args.load_saved_model, map_location=device)
         logger.info('Saved Model loaded from {}'.format(args.load_saved_model))
 
         if args.finetune is True:
@@ -257,7 +261,8 @@ def main():
                 if model.globalStep % args.log_per_updates == 0 and (model.accumulatedStep+1 == args.grad_accumulation_steps):
                     taskId = batchMetaData['task_id']
                     taskName = taskParams.taskIdNameMap[taskId]
-                    avgLoss = totalEpochLoss / ((i+1)*args.train_batch_size) 
+                    #avgLoss = totalEpochLoss / ((i+1)*args.train_batch_size)
+                    avgLoss = totalEpochLoss / (i+1)
                     logger.info('Steps: {} Task: {} Avg.Loss: {} Task Loss: {}'.format(model.globalStep,
                                                                                     taskName,
                                                                                     avgLoss,
@@ -272,6 +277,18 @@ def main():
                     savePath = os.path.join(args.out_dir, 'multi_task_model_{}_{}.pt'.format(epoch,
                                                                                             model.globalStep))
                     model.save_multi_task_model(savePath)
+
+                    # limiting the checkpoints save, remove checkpoints if beyond limit
+                    if args.limit_save > 0:
+                        stepCkpMap = {int(ckp.rstrip('.pt').split('_')[-1]) : ckp for ckp in os.listdir(args.out_dir) if ckp.endswith('.pt') }
+                        
+                        #sorting based on global step
+                        stepToDel = sorted(list(stepCkpMap.keys()))[:-args.limit_save]
+
+                        for ckpStep in stepToDel:
+                            os.remove(os.path.join(args.out_dir, stepCkpMap[ckpStep]))
+                            logger.info('Removing checkpoint {}'.format(stepCkpMap[ckpStep]))
+
                 progress.update(1)
 
             #saving model after epoch

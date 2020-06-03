@@ -34,11 +34,16 @@ class inferPipeline:
     """
 
     def __init__(self, modelPath, maxSeqLen = 128):
+
+        device = torch.device('cpu')
+        if torch.cuda.is_available():
+            device = torch.device('cuda')
+
         self.maxSeqLen = maxSeqLen
         self.modelPath = modelPath
         assert os.path.exists(self.modelPath), "saved model not present at {}".format(self.modelPath)
 
-        loadedDict = torch.load(self.modelPath)
+        loadedDict = torch.load(self.modelPath, map_location=device)
         self.taskParams = loadedDict['task_params']
         logger.info('Task Params loaded from saved model.')
 
@@ -201,9 +206,10 @@ class inferPipeline:
                 
                 [
                     [<sentenceA>, <sentenceB>],
+                    
+                    [<sentenceA>, <sentenceB>],
 
-                    [<sentenceA>, <sentenceB>]
-
+                    ...
                 ]
 
                 or in case all the tasks just require single sentence inputs,
@@ -211,8 +217,9 @@ class inferPipeline:
                 [
                     [<sentenceA>],
 
-                    [<sentenceA>]
+                    [<sentenceA>],
 
+                    ...
                 ]
 
             taskNamesList (:obj:`list`) : List of tasks to be performed on dataList samples. For eg.
@@ -239,8 +246,9 @@ class inferPipeline:
 
                     'TaskB' : <TaskB output>,
 
-                    'TaskC' : <TaskC output>}
+                    'TaskC' : <TaskC output>},
 
+                    ...
                 ]
 
         Example::
@@ -250,7 +258,6 @@ class inferPipeline:
             >>> pipe.infer(samples, tasks)
 
         """
-
         #print(dataList)
         #print(taskNamesList)
         allTasksList = []
@@ -288,10 +295,3 @@ class inferPipeline:
             finalOutList = self.format_output(dataList, allIds, allPreds, allScores)
             #print(finalOutList)
             return finalOutList
-
-
-            
-
-
-
-

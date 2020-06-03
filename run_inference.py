@@ -16,7 +16,9 @@ import os
 import torch
 import logging
 logger = logging.getLogger("multi_task")
- 
+device = torch.device('cpu')
+if torch.cuda.is_available():
+    device = torch.device('cuda')
 
 def main():
     parser = argparse.ArgumentParser()
@@ -41,7 +43,7 @@ def main():
     allParams = vars(args)
     assert os.path.exists(args.saved_model_path), "saved model not present at {}".format(args.saved_model_path)
     assert os.path.exists(args.pred_file_path), "prediction tsv file not present at {}".format(args.pred_file_path)
-    loadedDict = torch.load(args.saved_model_path)
+    loadedDict = torch.load(args.saved_model_path, map_location=device)
     taskParamsModel = loadedDict['task_params']
     logger.info('Task Params loaded from saved model.')
 

@@ -24,7 +24,7 @@ Majority of the NLI tasks can be modeled using one of these task types.
   3. **SentenceA** :-  First sentence of the sentence pair.
   4. **SentenceB** :- Second sentence of the sentence pair.
 
-- ``NER`` : This task type is to be used for sequence labelling / Named Entity Recognition. The data files need to have following columns separated by **"\\t"** in the order as mentioned below.
+- ``NER`` : This task type is to be used for sequence labelling tasks like Named Entity Recognition , entity mention detection, keyphrase extraction etc. The data files need to have following columns separated by **"\\t"** in the order as mentioned below.
 
   1. **Unique id** :- an id to uniquely identify each row/sample. 
   2. **Label** :- List of tags for words in sentence.

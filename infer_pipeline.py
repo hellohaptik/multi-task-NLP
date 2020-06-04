@@ -250,7 +250,7 @@ class inferPipeline:
 
         Example::
 
-            >>> samples = [ ['sample_sentence_1], ['sample_sentence_2'] ]
+            >>> samples = [ ['sample_sentence_1'], ['sample_sentence_2'] ]
             >>> tasks = ['TaskA', 'TaskB']
             >>> pipe.infer(samples, tasks)
 

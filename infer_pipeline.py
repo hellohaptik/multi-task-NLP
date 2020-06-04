@@ -209,7 +209,6 @@ class inferPipeline:
                     
                     [<sentenceA>, <sentenceB>],
 
-                    ...
                 ]
 
                 or in case all the tasks just require single sentence inputs,
@@ -219,7 +218,6 @@ class inferPipeline:
 
                     [<sentenceA>],
 
-                    ...
                 ]
 
             taskNamesList (:obj:`list`) : List of tasks to be performed on dataList samples. For eg.
@@ -248,7 +246,6 @@ class inferPipeline:
 
                     'TaskC' : <TaskC output>},
 
-                    ...
                 ]
 
         Example::

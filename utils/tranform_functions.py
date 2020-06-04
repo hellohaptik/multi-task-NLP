@@ -17,6 +17,8 @@ def bio_ner_to_tsv(dataDir, readFile, wrtDir, transParamDict, isTrainFile=False)
     - NER transformed tsv file.
     - NER label map joblib file.
 
+    For using this transform function, set ``transform_func`` : **bio_ner_to_tsv** in transform file.
+
     Args:
         dataDir (:obj:`str`) : Path to the directory where the raw data files to be read are present..
         readFile (:obj:`str`) : This is the file which is currently being read and transformed by the function.
@@ -96,6 +98,8 @@ def snips_intent_ner_to_tsv(dataDir, readFile, wrtDir, transParamDict, isTrainFi
     - NER label map joblib file.
     - intent transformed tsv file.
     - intent label map joblib file.
+
+    For using this transform function, set ``transform_func`` : **snips_intent_ner_to_tsv** in transform file.
 
     Args:
         dataDir (:obj:`str`) : Path to the directory where the raw data files to be read are present..
@@ -245,6 +249,7 @@ def snli_entailment_to_tsv(dataDir, readFile, wrtDir, transParamDict, isTrainFil
 
     - Sentence pair transformed tsv file for entailment task
 
+    For using this transform function, set ``transform_func`` : **snli_entailment_to_tsv** in transform file.
 
     Args:
         dataDir (:obj:`str`) : Path to the directory where the raw data files to be read are present..
@@ -343,12 +348,13 @@ def fragment_detection_to_tsv(dataDir, readFile, wrtDir, transParamDict, isTrain
     """
     This function transforms data for fragment detection task (detecting whether a sentence is incomplete/fragment or not).
     It takes data in single sentence classification format and creates fragment samples from the sentences.
+    In the transformed file, label 1 and 0 represent fragment and non-fragment sentence respectively.
     Following transformed files are written at wrtDir
 
     - Fragment transformed tsv file containing fragment/non-fragment sentences and labels
 
-    In the transformed file, label 1 and 0 represent fragment and non-fragment sentence respectively.
 
+    For using this transform function, set ``transform_func`` : **fragment_detection_to_tsv** in transform file.
     Args:
         dataDir (:obj:`str`) : Path to the directory where the raw data files to be read are present..
         readFile (:obj:`str`) : This is the file which is currently being read and transformed by the function.
@@ -403,6 +409,8 @@ def msmarco_query_type_to_tsv(dataDir, readFile, wrtDir, transParamDict, isTrain
 
     - Query type transformed tsv data file.
     - Query type label map joblib file.
+
+    For using this transform function, set ``transform_func`` : **msmarco_query_type_to_tsv** in transform file.
 
     Args:
         dataDir (:obj:`str`) : Path to the directory where the raw data files to be read are present..

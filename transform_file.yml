@@ -1,5 +1,5 @@
 sample_transform1:
-  transform_func: snips_intent_ner
+  transform_func: snips_intent_ner_to_tsv
   read_file_names:
     - snips_train.txt
     - snips_dev.txt
@@ -7,17 +7,9 @@ sample_transform1:
   read_dir: snips_data
   save_dir: demo_transform
 
-sample_transform2:
-  transform_func: coNLL_pos_ner
-  read_file_names:
-    - coNLL_train.txt
-    - coNLL_testa.txt
-    - coNLL_testb.txt
-  read_dir: coNLL_data
-  save_dir: demo_transform
 
-sample_transform3:
-  transform_func: snli_entailment
+sample_transform2:
+  transform_func: snli_entailment_to_tsv
   read_file_names:
     - snli_train.jsonl
     - snli_dev.jsonl
@@ -25,8 +17,8 @@ sample_transform3:
   read_dir : snli_data
   save_dir: demo_transform
 
-sample_transform4:
-  transform_func: bio_ner
+sample_transform3:
+  transform_func: bio_ner_to_tsv
   transform_params:
     save_prefix : sample
     tag_col : 1
@@ -40,8 +32,8 @@ sample_transform4:
   read_dir: coNLL_data
   save_dir: demo_transform
 
-sample_transform5:
-  transform_func: fragment
+sample_transform4:
+  transform_func: fragment_detection_to_tsv
   transform_params:
     data_frac : 0.2
     seq_len_right : 3
@@ -56,8 +48,8 @@ sample_transform5:
   read_dir: data
   save_dir: demo_transform
 
-sample_transform6:
-  transform_func: msmarco_query_type
+sample_transform5:
+  transform_func: msmarco_query_type_to_tsv
   transform_params:
     data_frac : 0.2
   read_file_names:

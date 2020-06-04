@@ -1,5 +1,9 @@
+Quickstart
+===========
+Follow these 3 simple steps to train your multi-task model!
+
 Step 1 - Define your task file
-==============================
+------------------------------
 
 Task file is a YAML format file where you can add all your tasks for which you want to train a multi-task model.
 
@@ -41,7 +45,7 @@ Task file is a YAML format file where you can add all your tasks for which you w
 For knowing about the task file parameters to make your task file, refer :ref:`here<Task file parameters>`.
 
 Step 2 - Run data preparation
-=============================
+-----------------------------
 
 After defining the task file in :ref:`Step 1<Step 1 - Define your task file>`, run the following command to prepare the data.
 
@@ -53,7 +57,7 @@ After defining the task file in :ref:`Step 1<Step 1 - Define your task file>`, r
 For knowing about the ``data_preparation.py`` script and its arguments, refer :ref:`here<Running data preparation>`.
 
 Step 3 - Run train
-==================
+------------------
 
 Finally you can start your training using the following command.
 

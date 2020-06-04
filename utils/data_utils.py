@@ -26,12 +26,12 @@ METRICS = {
 }
 
 TRANSFORM_FUNCS = {
-    "snips_intent_ner" : snips_intent_ner_to_tsv,
-    "coNLL_pos_ner" : coNLL_ner_pos_to_tsv,
-    "snli_entailment" : snli_entailment_to_tsv,
-    "bio_ner" : bio_ner_to_tsv,
-    "fragment" : fragment_detection_to_tsv,
-    "msmarco_query_type" : msmarco_query_type_to_tsv
+    "snips_intent_ner_to_tsv" : snips_intent_ner_to_tsv,
+    "coNLL_ner_pos_to_tsv" : coNLL_ner_pos_to_tsv,
+    "snli_entailment_to_tsv" : snli_entailment_to_tsv,
+    "bio_ner_to_tsv" : bio_ner_to_tsv,
+    "fragment_detection_to_tsv" : fragment_detection_to_tsv,
+    "msmarco_query_type_to_tsv" : msmarco_query_type_to_tsv
 }
 
 class ModelType(IntEnum):

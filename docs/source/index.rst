@@ -29,7 +29,7 @@ with the following terminal command.
 >>> pip install -r requirements.txt 
 
 NOTE:- The library is built and tested using ``Python 3.7.3``. It is recommended to install the requirements in a virtual environment.
- 
+
 Quickstart Guide
 ----------------
 A quick guide to show how a single model can be trained for multiple NLI tasks in just 3 simple steps
@@ -51,4 +51,5 @@ A complete guide explaining all the components of multi-task-NLP in sequential o
    define_multi_task_model
    training
    infering
+   license
 

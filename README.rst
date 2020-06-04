@@ -9,6 +9,8 @@ For complete documentation for this library, please refer to `documentation <htt
 
 
 .. image:: docs/source/multi_task.png
+   :scale: 75%
+   :align: center
 
 What is multi_task_NLP about?
 -----------------------------

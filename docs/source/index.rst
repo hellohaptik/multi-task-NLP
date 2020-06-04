@@ -7,6 +7,8 @@ multi_task_NLP is a utility toolkit enabling NLP developers to easily train and 
 We support various data formats for majority of NLI tasks and multiple transformer-based encoders (eg. BERT, Distil-BERT, ALBERT, RoBERTa, XLNET etc.)
 
 .. image:: multi_task.png
+   :scale: 75%
+   :align: center
 
 What is multi_task_NLP about?
 -----------------------------

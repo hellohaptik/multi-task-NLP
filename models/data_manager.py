@@ -17,8 +17,9 @@ class allTasksDataset(Dataset):
                 [ {"data_task_id" : "", "data_path" : "", "data_task_type" : ""},
                  ...]
     '''
-    def __init__(self, taskDict):
+    def __init__(self, taskDict, pipeline = False):
         self.taskDict = taskDict
+        self.pipeline = pipeline
         self.allTasksData, self.taskIdTypeMap = self.make_all_datasets()
 
     def read_data(self, readPath):
@@ -26,6 +27,8 @@ class allTasksDataset(Dataset):
             logger.info('Reading data from file {}'.format(readPath))
             taskData = []
             for i, line in enumerate(file):
+                #if i >=1000:
+                    #continue
                 sample = json.loads(line)
                 taskData.append(sample)
         return taskData
@@ -38,8 +41,11 @@ class allTasksDataset(Dataset):
         allTasksData = {}
         taskIdTypeMap = {} # mapping from task id to task type
         for task in self.taskDict:
-            
-            data = self.read_data(task["data_path"])
+            if self.pipeline:
+                logger.info('Reading data for pipeline')
+                data = task["data_"]
+            else:
+                data = self.read_data(task["data_path"])
             allTasksData[task["data_task_id"]] = data
             taskIdTypeMap[task["data_task_id"]] = task["data_task_type"]
             logger.info('Read Data for Task Id: {} Task Name: {}. Samples {}'.format(task["data_task_id"], task["data_task_name"], len(data)))
@@ -48,7 +54,7 @@ class allTasksDataset(Dataset):
     # some standard functions which need to be overridden from Dataset
     #class for item, len etc..
     def __len__(self):
-        return len(self.allTasksData)
+        return sum(len(v) for k, v in self.allTasksData.items())
 
     # get item will be used to fetch a sample when required for the corresponding task id. 
     def __getitem__(self, idx):
@@ -204,7 +210,7 @@ class batchUtils:
             assert sample["task"]["task_id"] == taskId
             assert sample["task"]["task_type"] == taskType
             orgBatch.append(sample["sample"])
-            labels.append(int(sample["sample"]["label"]))
+            labels.append(sample["sample"]["label"])
             
         batch = orgBatch
         #making tensor batch data
@@ -216,26 +222,16 @@ class batchUtils:
         # and in evaluation, it won't go with batch data, rather will keep it with meta data for metrics
         if self.isTrain:
 
-            if taskType in (TaskType.SingleSenClassification, TaskType.SentencePairClassification):
+            if taskType in (TaskType.SingleSenClassification, TaskType.SentencePairClassification, TaskType.NER):
                 batchData.append(torch.LongTensor(labels))
-            if taskType == TaskType.Span:
-                #in this case we will have a start and end instead of label
-                start = [sample['start_position'] for sample in batch]
-                end = [sample['end_position'] for sample in batch]
-                batchData.append((torch.LongTensor(start), torch.LongTensor(end)))
+
             #position for label
             batchMetaData['label_pos'] = len(batchData) - 1
         else:
             # for test/eval labels won't be added into batch, but kept in meta data
             # so metric evaluation can be done
+            #batchData :- [tokenIdsBatchTensor, typeIdsBatchTensor, MasksBatchTensor]
             batchMetaData['label'] = labels
-            if taskType == TaskType.Span:
-                batchMetaData['token_to_orig_map'] = [sample['token_to_orig_map'] for sample in batch]
-                batchMetaData['token_is_max_context'] = [sample['token_is_max_context'] for sample in batch]
-                batchMetaData['doc_offset'] = [sample['doc_offset'] for sample in batch]
-                batchMetaData['doc'] = [sample['doc'] for sample in batch]
-                batchMetaData['tokens'] = [sample['tokens'] for sample in batch]
-                batchMetaData['answer'] = [sample['answer'] for sample in batch]
 
         batchMetaData['uids'] = [sample['uid'] for sample in batch]  # used in scoring
         return batchMetaData, batchData

@@ -3,3 +3,11 @@
 
 #jupyter lab checkpoints
 .ipynb_checkpoints
+
+#docs
+docs/source/_build
+docs/build
+
+__pycache__
+
+.vscode

@@ -1,0 +1,28 @@
+snipsner:
+  model_type: ALBERT
+  config_name: albert-base-v1
+  dropout_prob: 0.3
+  label_map_or_file: data/ner_snips_train_label_map.joblib
+  metrics:
+  - ner_accuracy
+  - ner_f1_score
+  loss_type: NERLoss
+  task_type: NER
+  file_names:
+  - ner_snips_train.tsv
+  - ner_snips_dev.tsv
+  - ner_snips_test.tsv
+
+snipsintent:
+    model_type: ALBERT
+    config_name: albert-base-v1
+    dropout_prob: 0.05
+    label_map_or_file: data/int_snips_train_label_map.joblib
+    metrics:
+    - accuracy
+    loss_type: CrossEntropyLoss
+    task_type: SingleSenClassification
+    file_names:
+    - int_snips_train.tsv
+    - int_snips_dev.tsv
+    - int_snips_test.tsv

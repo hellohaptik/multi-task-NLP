@@ -1,0 +1,61 @@
+sample_transform1:
+  transform_func: snips_intent_ner_to_tsv
+  read_file_names:
+    - snips_train.txt
+    - snips_dev.txt
+    - snips_test.txt
+  read_dir: snips_data
+  save_dir: demo_transform
+
+
+sample_transform2:
+  transform_func: snli_entailment_to_tsv
+  read_file_names:
+    - snli_train.jsonl
+    - snli_dev.jsonl
+    - snli_test.jsonl
+  read_dir : snli_data
+  save_dir: demo_transform
+
+sample_transform3:
+  transform_func: bio_ner_to_tsv
+  transform_params:
+    save_prefix : sample
+    tag_col : 1
+    col_sep : " "
+    sen_sep : "\n"
+  read_file_names:
+    - coNLL_train.txt
+    - coNLL_testa.txt
+    - coNLL_testb.txt
+
+  read_dir: coNLL_data
+  save_dir: demo_transform
+
+sample_transform4:
+  transform_func: fragment_detection_to_tsv
+  transform_params:
+    data_frac : 0.2
+    seq_len_right : 3
+    seq_len_left : 2
+    sep : "\t"
+    query_col : 2
+  read_file_names:
+    - int_snips_train.tsv
+    - int_snips_dev.tsv
+    - int_snips_test.tsv
+
+  read_dir: data
+  save_dir: demo_transform
+
+sample_transform5:
+  transform_func: msmarco_query_type_to_tsv
+  transform_params:
+    data_frac : 0.2
+  read_file_names:
+    - train_v2.1.json
+    - dev_v2.1.json
+    - eval_v2.1_public.json
+
+  read_dir: msmarco_qna_data
+  save_dir: demo_transform

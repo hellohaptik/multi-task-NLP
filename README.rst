@@ -7,6 +7,9 @@ We support various data formats for majority of NLI tasks and multiple transform
 
 For complete documentation for this library, please refer to `documentation <https://multi-task-nlp.readthedocs.io/en/latest/>`_
 
+
+.. image:: docs/source/multi_task.png
+
 What is multi_task_NLP about?
 -----------------------------
 

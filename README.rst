@@ -1,6 +1,7 @@
-==============
+<p align="center">
 multi-task-NLP
 ==============
+</p>
 
 multi_task_NLP is a utility toolkit enabling NLP developers to easily train and infer a single model for multiple tasks.
 We support various data formats for majority of NLI tasks and multiple transformer-based encoders (eg. BERT, Distil-BERT, ALBERT, RoBERTa, XLNET etc.)

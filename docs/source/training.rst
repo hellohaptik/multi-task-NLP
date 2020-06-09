@@ -25,10 +25,12 @@ The script takes the following arguments,
 
 You can use the following terminal command with your own argument values to run.
 
->>> python data_preparation.py \ 
-    --task_file 'sample_task_file.yml' \
-    --data_dir 'data' \
-    --max_seq_len 50 
+.. code-block:: console
+
+  $ python data_preparation.py \ 
+        --task_file 'sample_task_file.yml' \
+        --data_dir 'data' \
+        --max_seq_len 50 
 
 Running train
 -------------
@@ -54,20 +56,22 @@ available
 
 You can use the following terminal command with your own argument values to run.
 
->>> python train.py \
-    --data_dir 'data/bert-base-uncased_prepared_data' \
-    --task_file 'sample_task_file.yml' \
-    --out_dir 'sample_out' \
-    --epochs 5 \
-    --train_batch_size 4 \
-    --eval_batch_size 8 \
-    --grad_accumulation_steps 2 \
-    --log_per_updates 25 \
-    --save_per_updates 1000 \
-    --eval_while_train True \
-    --test_while_train True \
-    --max_seq_len 50 \
-    --silent True 
+.. code-block:: console
+
+  $ python train.py \
+        --data_dir 'data/bert-base-uncased_prepared_data' \
+        --task_file 'sample_task_file.yml' \
+        --out_dir 'sample_out' \
+        --epochs 5 \
+        --train_batch_size 4 \
+        --eval_batch_size 8 \
+        --grad_accumulation_steps 2 \
+        --log_per_updates 25 \
+        --save_per_updates 1000 \
+        --eval_while_train True \
+        --test_while_train True \
+        --max_seq_len 50 \
+        --silent True 
 
 Logs and tensorboard
 --------------------
@@ -75,6 +79,8 @@ Logs and tensorboard
 - Logs for the training should be saved in a time-stamp named directory (eg. 05_05-17_30). 
 - The tensorboard logs are also present in the same directory and tensorboard can be started with the following command
 
->>> tensorboard --logdir 05_05-17_30/tb_logs
+.. code-block:: console
+
+  $ tensorboard --logdir 05_05-17_30/tb_logs
 
 

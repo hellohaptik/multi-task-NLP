@@ -124,7 +124,9 @@ Running data transformations
 Once you have made the :ref:`transform file<Transform File>` with all the transform operations, 
 you can run data transformations with the following terminal command.
 
->>> python data_transformations.py \
+.. code-block:: console
+
+  $ python data_transformations.py \
         --transform_file 'transform_file.yml'
 
 

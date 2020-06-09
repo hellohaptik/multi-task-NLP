@@ -49,10 +49,12 @@ Step 2 - Run data preparation
 
 After defining the task file in :ref:`Step 1<Step 1 - Define your task file>`, run the following command to prepare the data.
 
->>> python data_preparation.py \ 
-    --task_file 'sample_task_file.yml' \
-    --data_dir 'data' \
-    --max_seq_len 50 
+.. code-block:: console
+  
+  $ python data_preparation.py \ 
+      --task_file 'sample_task_file.yml' \
+      --data_dir 'data' \
+      --max_seq_len 50 
 
 For knowing about the ``data_preparation.py`` script and its arguments, refer :ref:`here<Running data preparation>`.
 
@@ -61,20 +63,22 @@ Step 3 - Run train
 
 Finally you can start your training using the following command.
 
->>> python train.py \
-    --data_dir 'data/bert-base-uncased_prepared_data' \
-    --task_file 'sample_task_file.yml' \
-    --out_dir 'sample_out' \
-    --epochs 5 \
-    --train_batch_size 4 \
-    --eval_batch_size 8 \
-    --grad_accumulation_steps 2 \
-    --log_per_updates 25 \
-    --save_per_updates 1000 \
-    --eval_while_train True \
-    --test_while_train True \
-    --max_seq_len 50 \
-    --silent True 
+.. code-block:: console
+  
+  $ python train.py \
+      --data_dir 'data/bert-base-uncased_prepared_data' \
+      --task_file 'sample_task_file.yml' \
+      --out_dir 'sample_out' \
+      --epochs 5 \
+      --train_batch_size 4 \
+      --eval_batch_size 8 \
+      --grad_accumulation_steps 2 \
+      --log_per_updates 25 \
+      --save_per_updates 1000 \
+      --eval_while_train True \
+      --test_while_train True \
+      --max_seq_len 50 \
+      --silent True 
 
 For knowing about the ``train.py`` script and its arguments, refer :ref:`here<Running train>`.
 

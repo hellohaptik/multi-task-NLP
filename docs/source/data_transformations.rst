@@ -15,7 +15,7 @@ Sample transform functions
 ^^^^^^^^^^^^^^^^^^^^^^^^^^
 .. automodule:: utils.tranform_functions
     :members: snips_intent_ner_to_tsv, bio_ner_to_tsv, snli_entailment_to_tsv,
-        fragment_detection_to_tsv, msmarco_query_type_to_tsv
+        create_fragment_detection_tsv, msmarco_query_type_to_tsv, qqp_query_similarity_to_tsv
 
 Your own transform function
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^

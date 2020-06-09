@@ -1,6 +1,4 @@
-"""
-File for creating metric functions
-"""
+
 from sklearn.metrics import accuracy_score, f1_score
 from seqeval.metrics import f1_score as seq_f1
 from seqeval.metrics import precision_score, recall_score

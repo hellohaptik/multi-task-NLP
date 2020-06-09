@@ -46,6 +46,8 @@ and with **no requirement to code!!**
 
 Examples
 --------
+We provide exemplar notebooks to demonstrate some conversational AI tasks which can be perfomed using our library.
+You can follow along the to understand and train a multi-task model for the tasks.
 
 
 Step by Step Guide

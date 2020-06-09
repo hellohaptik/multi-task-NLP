@@ -5,7 +5,7 @@ import multiprocessing as mp
 from keras.preprocessing.sequence import pad_sequences
 from utils.data_utils import TaskType, ModelType, NLP_MODELS
 from utils.task_utils import TasksParam
-from tqdm import tqdm
+from tqdm.notebook import tqdm
 from ast import literal_eval
 
 def load_data(dataPath, taskType, hasLabels):
@@ -25,6 +25,8 @@ def load_data(dataPath, taskType, hasLabels):
 
         if taskType == TaskType.SingleSenClassification:
             if hasLabels is True:
+                if not  len(cols) == 3:
+                    print(line)
                 assert len(cols) == 3, "Data is not in Single Sentence Classification format"
                 row = {"uid": cols[0], "label": cols[1], "sentenceA": cols[2]}
             else:
@@ -124,7 +126,7 @@ def create_data_sentence_pair_classification(data, chunkNumber, tempList, maxSeq
                 ids = sample['uid']
                 senA = sample['sentenceA']
                 senB = sample['sentenceB']
-                label = int(sample['label'])
+                label = sample['label']
                 assert label.isnumeric() or labelMap is not None, "In Sen Classification, either labels \
                                                                 should be integers or label map should be given in task file"
 

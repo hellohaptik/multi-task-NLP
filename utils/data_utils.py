@@ -18,11 +18,14 @@ LOSSES = {
 }
 
 METRICS = {
-    "accuracy": accuracy_,
-    "f1_score": f1_score_,
-    "seq_f1" : seq_f1_score,
-    "seq_precision" : seq_precision,
-    "seq_recall" : seq_recall
+    "classification_accuracy": classification_accuracy,
+    "classification_f1_score": classification_f1_score,
+    "seqeval_f1_score" : seqeval_f1_score,
+    "seqeval_precision" : seqeval_precision,
+    "seqeval_recall" : seqeval_recall,
+    "snips_f1_score" : snips_f1_score,
+    "snips_precision" : snips_precision,
+    "snips_recall" : snips_recall
 }
 
 TRANSFORM_FUNCS = {
@@ -30,8 +33,10 @@ TRANSFORM_FUNCS = {
     "coNLL_ner_pos_to_tsv" : coNLL_ner_pos_to_tsv,
     "snli_entailment_to_tsv" : snli_entailment_to_tsv,
     "bio_ner_to_tsv" : bio_ner_to_tsv,
-    "fragment_detection_to_tsv" : fragment_detection_to_tsv,
-    "msmarco_query_type_to_tsv" : msmarco_query_type_to_tsv
+    "create_fragment_detection_tsv" : create_fragment_detection_tsv,
+    "msmarco_query_type_to_tsv" : msmarco_query_type_to_tsv,
+    "imdb_sentiment_data_to_tsv" : imdb_sentiment_data_to_tsv,
+    "qqp_query_similarity_to_tsv" : qqp_query_similarity_to_tsv
 }
 
 class ModelType(IntEnum):

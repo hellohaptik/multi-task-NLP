@@ -1,0 +1,44 @@
+ner:
+  model_type: BERT
+  config_name: bert-base-uncased
+  dropout_prob: 0.3
+  label_map_or_file: ../../data/ner_snips_train_label_map.joblib
+  metrics:
+  - snips_f1_score
+  - snips_precision
+  - snips_recall
+  loss_type: NERLoss
+  task_type: NER
+  file_names:
+  - ner_snips_train.tsv
+  - ner_snips_dev.tsv
+  - ner_snips_test.tsv
+
+intent:
+    model_type: BERT
+    config_name: bert-base-uncased
+    dropout_prob: 0.3
+    label_map_or_file: ../../data/int_snips_train_label_map.joblib
+    metrics:
+    - classification_accuracy
+    loss_type: CrossEntropyLoss
+    task_type: SingleSenClassification
+    file_names:
+    - int_snips_train.tsv
+    - int_snips_dev.tsv
+    - int_snips_test.tsv
+
+    
+fragdetect:
+    model_type: BERT
+    config_name: bert-base-uncased
+    dropout_prob: 0.2
+    class_num: 2
+    metrics:
+    - classification_accuracy
+    loss_type: CrossEntropyLoss
+    task_type: SingleSenClassification
+    file_names:
+    - fragment_snips_train.tsv
+    - fragment_snips_dev.tsv
+    - fragment_snips_test.tsv

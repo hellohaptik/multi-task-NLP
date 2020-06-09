@@ -17,8 +17,8 @@ The words which don't belong to any entity label are simply labeled as "O". NER 
 ``Fragment Detection`` :- This is modeled as a single sentence classification task which detects whether a sentence is incomplete (fragment) or not (non-fragment).
 This is a very useful piece in conversational system as knowing if a query/sentence is incomplete can aid in discarding bad queries beforehand.
 
-**Data** :- In this example, we are using the `SNIPS <"https://snips-nlu.readthedocs.io/en/latest/dataset.html">`_  data for intent and entity detection. For the sake of simplicity, we provide 
-the data in simpler form under ``snips_data`` directory taken from `here <"https://github.com/LeePleased/StackPropagation-SLU/tree/master/data/snips">`_.
+**Data** :- In this example, we are using the `SNIPS <https://snips-nlu.readthedocs.io/en/latest/dataset.html>`_  data for intent and entity detection. For the sake of simplicity, we provide 
+the data in simpler form under ``snips_data`` directory taken from `here <https://github.com/LeePleased/StackPropagation-SLU/tree/master/data/snips>`_.
 
 **Transform file** :- `transform_file_snips <https://github.com/hellohaptik/multi-task-NLP/blob/master/examples/intent_ner_fragment/transform_file_snips.yml>`_
 

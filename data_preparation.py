@@ -5,7 +5,7 @@ import multiprocessing as mp
 from keras.preprocessing.sequence import pad_sequences
 from utils.data_utils import TaskType, ModelType, NLP_MODELS
 from utils.task_utils import TasksParam
-from tqdm.notebook import tqdm
+from tqdm import tqdm
 from ast import literal_eval
 
 def load_data(dataPath, taskType, hasLabels):

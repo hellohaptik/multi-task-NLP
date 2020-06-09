@@ -40,6 +40,7 @@ by defining a YAML format ``transform_file``. Say you want to perform these tran
 **sample_transform1**, **sample_transform2**, ..., **sample_transform5**.
 Following is an example for the transform file,
 ::
+
   sample_transform1:
     transform_func: snips_intent_ner_to_tsv
     read_file_names:

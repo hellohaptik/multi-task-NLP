@@ -78,5 +78,5 @@ Metrics
 For evaluating the performance on dev and test sets during training, we provide the following standard metrics.
 
 .. automodule:: utils.eval_metrics
-    :members: accuracy_, f1_score_, seq_f1_score, seq_precision, seq_recall
+    :members:
 

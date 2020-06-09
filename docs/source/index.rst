@@ -44,14 +44,14 @@ and with **no requirement to code!!**
 .. toctree::
    quickstart
 
-Examples
---------
+Examples Guide
+--------------
 We provide exemplar notebooks to demonstrate some conversational AI tasks which can be perfomed using our library.
 You can follow along the `notebooks <https://github.com/hellohaptik/multi-task-NLP/tree/master/examples/>`_ to understand and train a multi-task model for the tasks.
 
 .. toctree::
    :maxdepth: 2
-   
+
    examples
 
 Step by Step Guide

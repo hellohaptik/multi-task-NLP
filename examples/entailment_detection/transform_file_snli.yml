@@ -1,0 +1,8 @@
+transform1:
+  transform_func: snli_entailment_to_tsv
+  read_file_names:
+    - snli_1.0_train.jsonl
+    - snli_1.0_dev.jsonl
+    - snli_1.0_test.jsonl
+  read_dir : snli_1.0
+  save_dir: ../../data

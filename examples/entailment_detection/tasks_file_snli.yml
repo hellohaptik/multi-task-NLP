@@ -1,0 +1,13 @@
+entailmentsnli:
+    model_type: BERT
+    config_name: bert-base-uncased
+    dropout_prob: 0.2
+    metrics:
+    - classification_accuracy
+    loss_type: CrossEntropyLoss
+    class_num: 2
+    task_type: SentencePairClassification
+    file_names:
+    - entailment_snli_1.0_train.tsv
+    - entailment_snli_1.0_dev.tsv
+    - entailment_snli_1.0_test.tsv

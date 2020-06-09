@@ -263,7 +263,8 @@ def snli_entailment_to_tsv(dataDir, readFile, wrtDir, transParamDict, isTrainFil
 
     mapping = {"contradiction" : 0, "neutral" : 0, "entailment" : 1}
     f = open(os.path.join(dataDir, readFile))
-    w = open(os.path.join(wrtDir, 'snli_{}.tsv'.format(readFile.split('.')[0])), 'w')
+    w = open(os.path.join(wrtDir, 'entailment_{}.tsv'.format(readFile.lower().replace('.jsonl', ''))), 'w')
+    print('Making data from file {}...'.format(readFile))
     posCnt = 0
     for i, line in enumerate(f):
         if i % 5000 == 0:
@@ -275,6 +276,8 @@ def snli_entailment_to_tsv(dataDir, readFile, wrtDir, transParamDict, isTrainFil
         label = mapping[row["gold_label"]]
         posCnt += label
         w.write("{}\t{}\t{}\t{}\n".format(row["pairID"], label, row["sentence1"], row["sentence2"]))
+    
+    print('File written at: ', os.path.join(wrtDir, 'entailment_{}.tsv'.format(readFile.lower().replace('.jsonl', ''))))
     
     print('total number of samples: {}'.format(i+1))
     print('number of positive samples: {}'.format(posCnt))

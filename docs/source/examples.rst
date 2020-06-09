@@ -26,7 +26,21 @@ the data in simpler form under ``snips_data`` directory taken from `here <https:
 
 **Notebook** :- `intent_ner_fragment <https://github.com/hellohaptik/multi-task-NLP/blob/master/examples/intent_ner_fragment/intent_ner_fragment.ipynb>`_
 
-Example-2 Textual entailment
-----------------------------
+Example-2 Entailment detection
+------------------------------
 
+**Tasks Description**
+
+``Entailment`` :- This is a sentence pair classification task which determines whether the second sentence
+in a sample can be inferred from the first. In conversational AI context, this task can be seen as determining whether the second sentence is similar to first or not.
+Additionally, the probability score can also be used as a similarity score between the sentences. 
+
+
+**Data** :- In this example, we are using the `SNLI <https://nlp.stanford.edu/projects/snli>`_ data which is having sentence pairs and labels.
+
+**Transform file** :- `transform_file_snli <https://github.com/hellohaptik/multi-task-NLP/tree/master/examples/entailment_detection/transform_file_snli.yml>`_
+
+**Tasks file** :- `tasks_file_snli <https://github.com/hellohaptik/multi-task-NLP/tree/master/examples/entailment_detection/tasks_file_snli.yml>`_
+
+**Notebook** :- `entailment_snli <https://github.com/hellohaptik/multi-task-NLP/tree/master/examples/entailment_detection/entailment_snli.ipynb>`_
 

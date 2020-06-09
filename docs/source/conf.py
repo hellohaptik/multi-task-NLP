@@ -21,7 +21,7 @@ sys.path.insert(0, os.path.abspath('../../'))
 
 import sphinx_rtd_theme
 project = 'multi-task-NLP'
-copyright = '2020, saransh mehta'
+copyright = '2020, Jio Haptik Technologies Limited'
 author = 'saransh mehta'
 
 # The short X.Y version

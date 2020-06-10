@@ -303,7 +303,8 @@ def main():
             print('Loading raw data for task {} from {}'.format(taskName, os.path.join(args.data_dir, file)))
             rows = load_data(os.path.join(args.data_dir, file), tasks.taskTypeMap[taskName],
                             hasLabels = args.has_labels)
-            wrtFile = os.path.join(dataPath, '{}.json'.format(file.split('.')[0]))
+            #wrtFile = os.path.join(dataPath, '{}.json'.format(file.split('.')[0]))
+            wrtFile = os.path.join(dataPath, '{}.json'.format(file.lower().replace('.tsv', '')))
             print('Processing Started...')
             create_data_multithreaded(rows, wrtFile, tokenizer, tasks, taskName,
                                     args.max_seq_len, args.multithreaded)

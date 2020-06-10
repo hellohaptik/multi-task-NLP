@@ -119,7 +119,8 @@ def make_data_handlers(taskParams, mode, isTrain, gpu):
         taskType = taskParams.taskTypeMap[taskName]
         if mode == "test":
             assert len(taskParams.fileNamesMap[taskName])==3, "test file is required along with train, dev"
-        dataFileName =  '{}.json'.format(taskParams.fileNamesMap[taskName][modeIdx].split('.')[0])
+        #dataFileName =  '{}.json'.format(taskParams.fileNamesMap[taskName][modeIdx].split('.')[0])
+        dataFileName = '{}.json'.format(taskParams.fileNamesMap[taskName][modeIdx].lower().replace('.tsv',''))
         taskDataPath = os.path.join(args.data_dir, dataFileName)
         assert os.path.exists(taskDataPath), "{} doesn't exist".format(taskDataPath)
         taskDict = {"data_task_id" : int(taskId),

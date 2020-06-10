@@ -1,0 +1,13 @@
+answerability:
+    model_type: BERT
+    config_name: bert-base-uncased
+    dropout_prob: 0.2
+    class_num: 2
+    metrics:
+    - classification_accuracy
+    loss_type: CrossEntropyLoss
+    task_type: SentencePairClassification
+    file_names:
+    - msmarco_answerability_train.tsv
+    - msmarco_answerability_dev.tsv
+    - msmarco_answerability_test.tsv

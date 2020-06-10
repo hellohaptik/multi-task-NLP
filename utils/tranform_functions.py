@@ -595,3 +595,77 @@ def qqp_query_similarity_to_tsv(dataDir, readFile, wrtDir, transParamDict, isTra
     testDf.to_csv(os.path.join(wrtDir, 'qqp_query_similarity_test.tsv'), sep="\t",
                   index=False, header=False)   
     print('Test file saved at: {}'.format(os.path.join(wrtDir, 'qqp_query_similarity_test.tsv')))
+    
+def msmarco_answerability_detection_to_tsv(dataDir, readFile, wrtDir, transParamDict, isTrainFile=False):
+    """
+    This function transforms the MSMARCO triples data available at `triples <https://msmarco.blob.core.windows.net/msmarcoranking/triples.train.small.tar.gz>`_ 
+    
+    The data contains triplets where the first entry is the query, second one is the context passage from which the query can be
+    answered (positive passage) , while the third entry is a context passage from which the query cannot be answered (negative passage).
+    Data is transformed into sentence pair classification format, with query-positive context pair labeled as 1 (answerable) 
+    and query-negative context pair labeled as 0 (non-answerable)
+    
+    Following transformed files are written at wrtDir
+
+    - Sentence pair transformed downsampled file.
+    - Sentence pair transformed train tsv file for answerability task
+    - Sentence pair transformed dev tsv file for answerability task
+    - Sentence pair transformed test tsv file for answerability task
+
+    For using this transform function, set ``transform_func`` : **msmarco_answerability_detection_to_tsv** in transform file.
+
+    Args:
+        dataDir (:obj:`str`) : Path to the directory where the raw data files to be read are present..
+        readFile (:obj:`str`) : This is the file which is currently being read and transformed by the function.
+        wrtDir (:obj:`str`) : Path to the directory where to save the transformed tsv files.
+        transParamDict (:obj:`dict`, defaults to :obj:`None`): Dictionary of function specific parameters. Not required for this transformation function.
+
+            - ``data_frac`` (defaults to 0.01) : Fraction of data to keep in downsampling as the original data size is too large.
+    """
+    transParamDict.setdefault("data_frac", 0.01)
+    sampleEvery = int(1/float(transParamDict["data_frac"]))
+    startId = 0
+    print('Making data from file {} ....'.format(readFile))
+    rf = open(os.path.join(dataDir, readFile))
+    sf = open(os.path.join(wrtDir, 'msmarco_triples_sampled.tsv'), 'w')
+    
+    # reading the big file line by line
+    for i, row in enumerate(rf):
+        # sampling
+        if i % 100000 == 0:
+            print("Processing {} rows...".format(i))
+            
+        if i % sampleEvery == 0:
+            rowData = row.split('\t')
+            posRowData = str(startId)+'\t'+str(1)+'\t'+ rowData[0]+'\t'+rowData[1]
+            negRowData = str(startId+1)+'\t'+str(0)+'\t'+ rowData[0]+'\t'+rowData[2].rstrip('\n')
+
+            #AN IMPORTANT POINT HERE IS TO STRIP THE row ending '\n' present after the negative 
+            # passage, otherwise it will hamper the dataframe.
+
+            #print(negRowData)
+            # writing the positive and negative into new sampled data file
+            sf.write(posRowData+'\n')
+            sf.write(negRowData+'\n')
+
+            #increasing id count
+            startId += 2
+    print('Total Number of rows in original data: ', i)
+    print('Number of answerable samples in downsampled data: ', int(startId / 2))
+    print('Number of non-answerable samples in downsampled data: ', int(startId / 2))
+    print('Downsampled msmarco triples tsv saved at: {}'.format(os.path.join(wrtDir, 'msmarco_triples_sampled.tsv')))
+    
+    #making train, test, dev split
+    sampledDf = pd.read_csv(os.path.join(wrtDir, 'msmarco_triples_sampled.tsv'), sep='\t', header=None)
+    trainDf, testDf = train_test_split(sampledDf, shuffle=True, random_state=SEED,
+                                          test_size=0.02)
+    trainDf.to_csv(os.path.join(wrtDir, 'msmarco_answerability_train.tsv'), sep='\t', index=False, header=False)
+    print('Train file written at: ', os.path.join(wrtDir, 'msmarco_answerability_train.tsv'))
+    
+    devDf, testDf = train_test_split(testDf, shuffle=True, random_state=SEED,
+                                          test_size=0.5)
+    devDf.to_csv(os.path.join(wrtDir, 'msmarco_answerability_dev.tsv'), sep='\t', index=False, header=False)
+    print('Dev file written at: ', os.path.join(wrtDir, 'msmarco_answerability_dev.tsv'))
+    
+    devDf.to_csv(os.path.join(wrtDir, 'msmarco_answerability_test.tsv'), sep='\t', index=False, header=False)
+    print('Test file written at: ', os.path.join(wrtDir, 'msmarco_answerability_test.tsv'))

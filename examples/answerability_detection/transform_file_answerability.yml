@@ -1,0 +1,8 @@
+transform1:
+  transform_func: msmarco_answerability_detection_to_tsv
+  transform_params:
+    data_frac : 0.02
+  read_file_names:
+    - triples.train.small.tsv
+  read_dir : msmarco_data
+  save_dir: ../../data

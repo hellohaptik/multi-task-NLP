@@ -36,7 +36,8 @@ TRANSFORM_FUNCS = {
     "create_fragment_detection_tsv" : create_fragment_detection_tsv,
     "msmarco_query_type_to_tsv" : msmarco_query_type_to_tsv,
     "imdb_sentiment_data_to_tsv" : imdb_sentiment_data_to_tsv,
-    "qqp_query_similarity_to_tsv" : qqp_query_similarity_to_tsv
+    "qqp_query_similarity_to_tsv" : qqp_query_similarity_to_tsv,
+    "msmarco_answerability_detection_to_tsv" : msmarco_answerability_detection_to_tsv
 }
 
 class ModelType(IntEnum):

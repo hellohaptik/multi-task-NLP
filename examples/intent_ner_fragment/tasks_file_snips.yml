@@ -24,9 +24,9 @@ intent:
     loss_type: CrossEntropyLoss
     task_type: SingleSenClassification
     file_names:
-    - int_snips_train.tsv
-    - int_snips_dev.tsv
-    - int_snips_test.tsv
+    - intent_snips_train.tsv
+    - intent_snips_dev.tsv
+    - intent_snips_test.tsv
 
     
 fragdetect:

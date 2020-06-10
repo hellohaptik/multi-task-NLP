@@ -400,7 +400,7 @@ def create_fragment_detection_tsv(dataDir, readFile, wrtDir, transParamDict, isT
     # saving
     print('writing fragment file for {} at {}'.format(readFile, wrtDir))
 
-    finalDf.to_csv(os.path.join(wrtDir, 'frag_{}.tsv'.format(readFile.split('.')[0])), sep='\t',
+    finalDf.to_csv(os.path.join(wrtDir, 'fragment_{}.tsv'.format(readFile.split('.')[0])), sep='\t',
                 index=False, header=False)
 
 def msmarco_query_type_to_tsv(dataDir, readFile, wrtDir, transParamDict, isTrainFile=False):

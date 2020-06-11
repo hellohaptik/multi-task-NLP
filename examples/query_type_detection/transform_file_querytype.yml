@@ -1,0 +1,11 @@
+transform1:
+  transform_func: msmarco_query_type_to_tsv
+  transform_params:
+    data_frac : 0.2
+  read_file_names:
+    - train_v2.1.json
+    - dev_v2.1.json
+    - eval_v2.1_public.json
+
+  read_dir: msmarco_qna_data
+  save_dir: ../../data

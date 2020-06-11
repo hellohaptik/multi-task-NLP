@@ -1,5 +1,8 @@
-
+"""
+File for creating metric functions
+"""
 from sklearn.metrics import accuracy_score, f1_score
+from sklearn.metrics import recall_score as class_recall_score
 from seqeval.metrics import f1_score as seq_f1
 from seqeval.metrics import precision_score, recall_score
 
@@ -31,6 +34,19 @@ def classification_f1_score(yTrue, yPred):
     """
     return f1_score(yTrue, yPred, average='micro')
 
+def classification_recall(yTrue, yPred):
+    """
+    Standard recall score from sklearn for classification tasks.
+    It takes a batch of predictions and labels.
+
+    To use this metric, add **classification_f1_score** into list of ``metrics`` in task file.
+
+    Args:
+        yPred (:obj:`list`) : [0, 2, 1, 3]
+        yTrue (:obj:`list`) : [0, 1, 2, 3]
+
+    """
+    return class_recall_score(yTrue, yPred, average='micro')
 
 def seqeval_f1_score(yTrue, yPred):
     """

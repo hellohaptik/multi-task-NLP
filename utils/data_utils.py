@@ -25,7 +25,8 @@ METRICS = {
     "seqeval_recall" : seqeval_recall,
     "snips_f1_score" : snips_f1_score,
     "snips_precision" : snips_precision,
-    "snips_recall" : snips_recall
+    "snips_recall" : snips_recall,
+    "classification_recall" : classification_recall
 }
 
 TRANSFORM_FUNCS = {
@@ -37,7 +38,8 @@ TRANSFORM_FUNCS = {
     "msmarco_query_type_to_tsv" : msmarco_query_type_to_tsv,
     "imdb_sentiment_data_to_tsv" : imdb_sentiment_data_to_tsv,
     "qqp_query_similarity_to_tsv" : qqp_query_similarity_to_tsv,
-    "msmarco_answerability_detection_to_tsv" : msmarco_answerability_detection_to_tsv
+    "msmarco_answerability_detection_to_tsv" : msmarco_answerability_detection_to_tsv,
+    "clinc_out_of_scope_to_tsv" : clinc_out_of_scope_to_tsv
 }
 
 class ModelType(IntEnum):

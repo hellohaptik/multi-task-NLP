@@ -3,8 +3,10 @@ import argparse
 import os
 import re
 import json
+import random
 import pandas as pd
 from tqdm import tqdm
+from collections import defaultdict
 from statistics import median
 from sklearn.model_selection import train_test_split
 SEED = 42
@@ -440,12 +442,12 @@ def msmarco_query_type_to_tsv(dataDir, readFile, wrtDir, transParamDict, isTrain
     #saving
     print('number of samples in final data : ', len(dfKeep))
     print('writing for file {} at {}'.format(readFile, wrtDir))
-    dfKeep.to_csv(os.path.join(wrtDir, 'querytype_{}.tsv'.format(readFile.split('.')[0])), sep='\t',
+    dfKeep.to_csv(os.path.join(wrtDir, 'querytype_{}.tsv'.format(readFile.lower().replace('.json', ''))), sep='\t',
                             index=False, header=False)
     if isTrainFile:
         allClasses = dfKeep['query_type'].unique()
         labelMap = {lab : i for i, lab in enumerate(allClasses)}
-        labelMapPath = os.path.join(wrtDir, 'querytype_{}_label_map.joblib'.format(readFile.split('.')[0]))
+        labelMapPath = os.path.join(wrtDir, 'querytype_{}_label_map.joblib'.format(readFile.lower().replace('.json', '')))
         joblib.dump(labelMap, labelMapPath)
         print('Created label map file at', labelMapPath)
 
@@ -669,3 +671,85 @@ def msmarco_answerability_detection_to_tsv(dataDir, readFile, wrtDir, transParam
     
     devDf.to_csv(os.path.join(wrtDir, 'msmarco_answerability_test.tsv'), sep='\t', index=False, header=False)
     print('Test file written at: ', os.path.join(wrtDir, 'msmarco_answerability_test.tsv'))
+    
+def clinc_out_of_scope_to_tsv(dataDir, readFile, wrtDir, transParamDict, isTrainFile=False):
+    
+    """
+
+    For using this transform function, set ``transform_func`` : **clinc_out_of_scope_to_tsv** in transform file.
+
+    Args:
+        dataDir (:obj:`str`) : Path to the directory where the raw data files to be read are present..
+        readFile (:obj:`str`) : This is the file which is currently being read and transformed by the function.
+        wrtDir (:obj:`str`) : Path to the directory where to save the transformed tsv files.
+        transParamDict (:obj:`dict`, defaults to :obj:`None`): Dictionary requiring the following parameters as key-value
+            
+            - ``samples_per_intent_train`` (defaults to 7) : Number of in-scope samples per intent to consider, as this data has imbalance for inscope and outscope
+
+    """
+    transParamDict.setdefault("samples_per_intent_train", 7)
+    
+    print("Making data from file {} ...".format(readFile))
+    raw = json.load(open(os.path.join(dataDir, readFile)))
+    
+    print('Num of train samples in-scope: ', len(raw['train']))
+    inScopeTrain = defaultdict(list)
+    for sentence, intent in raw['train']:
+        inScopeTrain[intent].append(sentence)
+
+    #sampling 
+    inscopeSampledTrain = []
+    numSamplesPerInt = 7
+    random.seed(SEED)
+    for intent in inScopeTrain:
+        inscopeSampledTrain += random.sample(inScopeTrain[intent], int(transParamDict["samples_per_intent_train"]))
+        
+    print('Num of sampled train samples in-scope: ', len(inscopeSampledTrain))
+    #out of scope train
+    outscopeTrain = [sample[0] for sample in raw['oos_train']]
+    print('Num of train out-scope samples: ', len(outscopeTrain))
+    
+    #train data
+    allTrain = inscopeSampledTrain + outscopeTrain
+    allTrainLabels = [1]*len(inscopeSampledTrain) + [0]*len(outscopeTrain)
+    
+    #writing train data file
+    trainF = open(os.path.join(wrtDir, 'clinc_outofscope_train.tsv'), 'w')
+    for uid, (samp, lab) in enumerate(zip(allTrain, allTrainLabels)):
+        trainF.write("{}\t{}\t{}\n".format(uid, lab, samp))
+    print('Train file written at: ', os.path.join(wrtDir, 'clinc_outofscope_train.tsv'))
+    trainF.close()
+
+    #making dev set
+    inscopeDev = [sample[0] for sample in raw['val']]
+    outscopeDev = [sample[0] for sample in raw['oos_val']]
+    print('Num of val out-scope samples: ', len(outscopeDev))
+    print('Num of val in-scope samples: ', len(inscopeDev))
+
+    #allDev = inscopeDev + outscopeDev
+    allDev = outscopeDev
+    #allDevLabels = [1]*inscopeDev + [0]*outscopeDev
+    allDevLabels = [0]*len(outscopeDev)
+    
+    #writing dev data file
+    devF = open(os.path.join(wrtDir, 'clinc_outofscope_dev.tsv'), 'w')
+    for uid, (samp, lab) in enumerate(zip(allDev, allDevLabels)):
+        devF.write("{}\t{}\t{}\n".format(uid, lab, samp))
+    print('Dev file written at: ', os.path.join(wrtDir, 'clinc_outofscope_dev.tsv'))
+    devF.close()
+
+    #making test set 
+    inscopeTest = [sample[0] for sample in raw['test']]
+    outscopeTest = [sample[0] for sample in raw['oos_test']]
+    print('Num of test out-scope samples: ', len(outscopeTest))
+    print('Num of test in-scope samples: ', len(inscopeTest))
+    
+    allTest = inscopeTest + outscopeTest
+    allTestLabels = [1]*len(inscopeTest) + [0]*len(outscopeTest)
+    
+    #writing test data file
+    testF = open(os.path.join(wrtDir, 'clinc_outofscope_test.tsv'), 'w')
+    for uid, (samp, lab) in enumerate(zip(allTest, allTestLabels)):
+        testF.write("{}\t{}\t{}\n".format(uid, lab, samp))
+    print('Test file written at: ', os.path.join(wrtDir, 'clinc_outofscope_test.tsv'))
+    testF.close()

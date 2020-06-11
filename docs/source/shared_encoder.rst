@@ -79,5 +79,5 @@ For evaluating the performance on dev and test sets during training, we provide 
 
 .. automodule:: utils.eval_metrics
     :members: classification_accuracy, classification_f1_score, seqeval_f1_score, 
-        seqeval_precision, seqeval_recall, snips_f1_score, snips_precision, snips_recall
+        seqeval_precision, seqeval_recall, snips_f1_score, snips_precision, snips_recall, classification_recall_score
 

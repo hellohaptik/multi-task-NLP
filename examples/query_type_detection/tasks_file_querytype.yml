@@ -1,0 +1,18 @@
+querytype:
+    model_type: BERT
+    config_name: bert-base-uncased
+    dropout_prob: 0.2
+    label_map_or_file:
+    - DESCRIPTION
+    - ENTITY
+    - LOCATION
+    - NUMERIC
+    - PERSON
+    metrics:
+    - classification_accuracy
+    loss_type: CrossEntropyLoss
+    task_type: SingleSenClassification
+    file_names:
+    - querytype_train_v2.1.tsv
+    - querytype_dev_v2.1.tsv
+    - querytype_eval_v2.1_public.tsv

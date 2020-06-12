@@ -39,6 +39,7 @@ TRANSFORM_FUNCS = {
     "imdb_sentiment_data_to_tsv" : imdb_sentiment_data_to_tsv,
     "qqp_query_similarity_to_tsv" : qqp_query_similarity_to_tsv,
     "msmarco_answerability_detection_to_tsv" : msmarco_answerability_detection_to_tsv,
+    "query_correctness_to_tsv" : query_correctness_to_tsv,
     "clinc_out_of_scope_to_tsv" : clinc_out_of_scope_to_tsv
 }
 

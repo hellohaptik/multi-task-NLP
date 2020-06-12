@@ -672,6 +672,37 @@ def msmarco_answerability_detection_to_tsv(dataDir, readFile, wrtDir, transParam
     devDf.to_csv(os.path.join(wrtDir, 'msmarco_answerability_test.tsv'), sep='\t', index=False, header=False)
     print('Test file written at: ', os.path.join(wrtDir, 'msmarco_answerability_test.tsv'))
     
+def query_correctness_to_tsv(dataDir, readFile, wrtDir, transParamDict, isTrainFile=False):
+
+    """
+
+    - Query correctness transformed file
+
+    For using this transform function, set ``transform_func`` : **query_correctness_to_tsv** in transform file.
+
+    Args:
+        dataDir (:obj:`str`) : Path to the directory where the raw data files to be read are present..
+        readFile (:obj:`str`) : This is the file which is currently being read and transformed by the function.
+        wrtDir (:obj:`str`) : Path to the directory where to save the transformed tsv files.
+        transParamDict (:obj:`dict`, defaults to :obj:`None`): Dictionary of function specific parameters. Not required for this transformation function.
+
+    """
+    print('Making data from file {}'.format(readFile))
+    df = pd.read_csv(os.path.join(dataDir, readFile), sep='\t', header=None, names = ['query', 'label'])
+    
+    # we consider anything above 0.6 as structured query (3 or more annotations as structured), and others as non-structured
+    
+    #df['label'] = [str(lab) for lab in df['label']]
+    df['label'] = [int(lab>=0.6)for lab in df['label']]
+    
+    data = [ [str(i), str(row['label']), row['query'] ] for i, row in df.iterrows()]
+    
+    wrtDf = pd.DataFrame(data, columns = ['uid', 'label', 'query'])
+    
+    #writing
+    wrtDf.to_csv(os.path.join(wrtDir, 'query_correctness_{}'.format(readFile)), sep="\t", index=False, header=False)
+    print('File saved at: ', os.path.join(wrtDir, 'query_correctness_{}'.format(readFile)))
+    
 def clinc_out_of_scope_to_tsv(dataDir, readFile, wrtDir, transParamDict, isTrainFile=False):
     
     """

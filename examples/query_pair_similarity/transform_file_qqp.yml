@@ -1,0 +1,6 @@
+sample_transform:
+  transform_func: qqp_query_similarity_to_tsv
+  read_file_names:
+    - quora_duplicate_questions.tsv
+  read_dir : qqp_data
+  save_dir: ../../data

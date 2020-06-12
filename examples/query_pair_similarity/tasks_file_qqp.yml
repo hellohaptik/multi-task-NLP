@@ -1,0 +1,13 @@
+querysimilarity:
+    model_type: BERT
+    config_name: bert-base-uncased
+    dropout_prob: 0.2
+    metrics:
+    - classification_accuracy
+    loss_type: CrossEntropyLoss
+    class_num: 2
+    task_type: SentencePairClassification
+    file_names:
+    - qqp_query_similarity_train.tsv
+    - qqp_query_similarity_dev.tsv
+    - qqp_query_similarity_test.tsv

@@ -454,14 +454,13 @@ def msmarco_query_type_to_tsv(dataDir, readFile, wrtDir, transParamDict, isTrain
 def imdb_sentiment_data_to_tsv(dataDir, readFile, wrtDir, transParamDict, isTrainFile=False):
     
     """
-    This function transforms the IMDb moview review data available at `IMDb <http://ai.stanford.edu/~amaas/data/sentiment/aclImdb_v1.tar.gz>`_ 
+    This function transforms the IMDb moview review data available at `IMDb <https://www.kaggle.com/lakshmi25npathi/imdb-dataset-of-50k-movie-reviews/data>`_ after accepting the terms.
     
-    For sentiment analysis task, postive sentiment has label -> 1 and negative -> 0.
-    First 25k samples are positive and next 25k samples are negative as combined by the script
-    ``combine_imdb_data.sh``. Following transformed files are written at wrtDir
+    The data is having total 50k samples labeled as `positive` or `negative`. The reviews have some html tags which are cleaned
+    by this function. Following transformed files are written at wrtDir
+
 
     - IMDb train transformed tsv file for sentiment analysis task
-    - IMDb dev transformed tsv file for sentiment analysis task
     - IMDb test transformed tsv file for sentiment analysis task
     
     For using this transform function, set ``transform_func`` : **imdb_sentiment_data_to_tsv** in transform file.
@@ -471,82 +470,36 @@ def imdb_sentiment_data_to_tsv(dataDir, readFile, wrtDir, transParamDict, isTrai
         readFile (:obj:`str`) : This is the file which is currently being read and transformed by the function.
         wrtDir (:obj:`str`) : Path to the directory where to save the transformed tsv files.
         transParamDict (:obj:`dict`, defaults to :obj:`None`): Dictionary of function specific parameters. Not required for this transformation function.
-
-
+        
+            - ``train_frac`` (defaults to 0.05) : Fraction of data to consider for train/test split.
     """
+    transParamDict.setdefault("train_frac", 0.9)
+    print('Making data from file ', readFile)
+    df = pd.read_csv(os.path.join(dataDir, readFile))
     
-    # first 25k samples are positive sentiment,
-    # last 25k samples are negative sentiment
-    transParamDict.setdefault("train_size", 0.8)
+    #cleaning review text
+    tt = re.compile('\t')
+    cleanr = re.compile('<.*?>|&([a-z0-9]+|#[0-9]{1,6}|#x[0-9a-f]{1,6});')
     
-    f = open(os.path.join(dataDir, readFile), 'r')
-    puncsToReplace = re.compile("\t")
-    tagsToReplace = re.compile(r'<[^<>]+>')
+    df['review'] = [re.sub(tt, ' ', review) for review in df['review'] ]
+    df['review'] = [re.sub(cleanr, ' ', review) for review in df['review'] ]
     
-    allIds = []
-    allReviews = []
-    allLabels = []
-    allLens = []
+    df['uid'] = [str(i) for i in range(len(df))]
+    df = df[['uid', 'sentiment', 'review']]
+    # train test 
+    dfTrain, dfTest = train_test_split(df, shuffle=False, test_size=1-float(transParamDict["train_frac"]),
+                                      random_state=SEED)
     
-    print("Making data from file {} ...".format(readFile))
-    for i, line in enumerate(f):
-        if i%5000 == 0:
-            print("Processing {} rows...".format(i))
-        
-        #cleaning review
-        review = line.strip()
-        review = puncsToReplace.sub(" ", review)
-        review = tagsToReplace.sub(" ", review)
-        allLens.append(len(review.split()))
-        allReviews.append(review)
-        
-        #adding label, 1 -> positive, 0 -> negative
-        label = int(i < 25000)
-        allLabels.append(label)
-        
-        #adding into id
-        allIds.append(i)
-        
-    # creating train, dev and test set data
-    reviewsTrain, reviewsTest, labelsTrain, labelsTest, idsTrain, idsTest = train_test_split(allReviews,
-                                                                                            allLabels,
-                                                                                            allIds,
-                                                                                            shuffle=True,
-                                                                                            random_state=SEED,
-                                                                                            test_size= 1-float(transParamDict["train_size"]) )
-    
-    reviewsDev, reviewsTest, labelsDev, labelsTest, idsDev, idsTest = train_test_split(reviewsTest,
-                                                                                      labelsTest,
-                                                                                      idsTest,
-                                                                                      shuffle=True,
-                                                                                      random_state=SEED,
-                                                                                      test_size=0.5)
+    print('Number of samples in train: ', len(dfTrain))
+    print('Number of samples in test: ', len(dfTest))
     
     #writing train file
-    trainW = open(os.path.join(wrtDir, 'imdb_train.tsv'), 'w')
-    for uid, label, review in zip(idsTrain, labelsTrain, reviewsTrain):
-        trainW.write("{}\t{}\t{}\n".format(uid, label, review))
-    trainW.close()
-    print("Train File Written at {}".format(os.path.join(wrtDir, 'imdb_train.tsv')))
-    
-    #writing dev file
-    devW = open(os.path.join(wrtDir, 'imdb_dev.tsv'), 'w')
-    for uid, label, review in zip(idsDev, labelsDev, reviewsDev):
-        devW.write("{}\t{}\t{}\n".format(uid, label, review))
-    devW.close()
-    print("Dev File Written at {}".format(os.path.join(wrtDir, 'imdb_dev.tsv')))
+    dfTrain.to_csv(os.path.join(wrtDir, 'imdb_sentiment_train.tsv'), sep='\t',index=False,header=False)
+    print('Train file written at: ', os.path.join(wrtDir, 'imdb_sentiment_train.tsv'))
     
     #writing test file
-    testW = open(os.path.join(wrtDir, 'imdb_test.tsv'), 'w')
-    for uid, label, review in zip(idsTest, labelsTest, reviewsTest):
-        testW.write("{}\t{}\t{}\n".format(uid, label, review))
-    testW.close()
-                       
-    print("Test File Written at {}".format(os.path.join(wrtDir, 'imdb_test.tsv')))
-    
-    print('Max len of sentence: ', max(allLens))
-    print('Mean len of sentences: ', sum(allLens) / len(allLens))
-    print('Median len of sentences: ', median(allLens))
+    dfTest.to_csv(os.path.join(wrtDir, 'imdb_sentiment_test.tsv'), sep='\t',index=False,header=False)
+    print('Test file written at: ', os.path.join(wrtDir, 'imdb_sentiment_test.tsv'))
     
 def qqp_query_similarity_to_tsv(dataDir, readFile, wrtDir, transParamDict, isTrainFile=False):
     

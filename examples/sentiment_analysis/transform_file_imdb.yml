@@ -1,0 +1,6 @@
+transform1:
+  transform_func: imdb_sentiment_data_to_tsv
+  read_file_names:
+  - imdb_sentiment_data.csv
+  read_dir: imdb_data
+  save_dir: ../../data

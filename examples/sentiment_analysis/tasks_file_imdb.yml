@@ -1,0 +1,15 @@
+sentiment:
+    model_type: BERT
+    config_name: bert-base-uncased
+    dropout_prob: 0.2
+    label_map_or_file:
+    - negative
+    - positive
+    class_num: 2
+    metrics:
+    - classification_accuracy
+    loss_type: CrossEntropyLoss
+    task_type: SingleSenClassification
+    file_names:
+    - imdb_sentiment_train.tsv
+    - imdb_sentiment_test.tsv

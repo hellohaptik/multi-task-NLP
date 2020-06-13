@@ -29,50 +29,47 @@ def make_arguments(parser):
                         help = 'path to save the model')
     parser.add_argument('--epochs', type = int, required=True,
                         help = 'number of epochs to train')
-    parser.add_argument('--finetune', type = bool, default= False,
-                        help = "If only the shared model is to be loaded with saved pre-trained multi-task model.\
-                            In this case, you can specify your own tasks with task file and use the pre-trained shared model\
-                            to finetune upon.")
-    parser.add_argument('--freeze_shared_model', type = bool, default=False,
+    parser.add_argument('--freeze_shared_model', default=False, action='store_true',
                         help = "True to freeze the loaded pre-trained shared model and only finetune task specific headers")
     parser.add_argument('--train_batch_size', type = int, default=8,
                         help='batch size to use for training')
     parser.add_argument('--eval_batch_size', type = int, default = 32,
                         help = "batch size to use during evaluation")
-    parser.add_argument('--eval_while_train', type = bool, default= True,
-                        help = "if evaluation on dev set is required during training.")
-    parser.add_argument('--test_while_train', type = bool, default = True,
-                        help = "if evaluation on test set is required during training.")
     parser.add_argument('--grad_accumulation_steps', type =int, default = 1,
                         help = "number of steps to accumulate gradients before update")
     parser.add_argument('--num_of_warmup_steps', type=int, default = 0,
                         help = "warm-up value for scheduler")
     parser.add_argument('--grad_clip_value', type = float, default=1.0,
                         help = "gradient clipping value to avoid gradient overflowing" )
-    parser.add_argument('--debug_mode', default = False, type = bool,
-                        help = "record logs for debugging if True")
     parser.add_argument('--log_file', default='multi_task_logs.log', type = str,
                         help = "name of log file to store")
     parser.add_argument('--log_per_updates', default = 10, type = int,
                         help = "number of steps after which to log loss")
-    parser.add_argument('--silent', type = bool, default = True,
-                        help = "Only write logs to file if True")
     parser.add_argument('--seed', default=42, type = int,
                         help = "seed to set for modules")
     parser.add_argument('--max_seq_len', default=128, type =int,
                         help = "max seq length used for model at time of data preparation")
-    parser.add_argument('--tensorboard', default=True, type = bool,
-                        help = "To create tensorboard logs")
     parser.add_argument('--save_per_updates', default = 0, type = int,
                         help = "to keep saving model after this number of updates")
     parser.add_argument('--limit_save', default = 10, type = int,
                         help = "max number recent checkpoints to keep saved")
     parser.add_argument('--load_saved_model', type=str, default=None,
                         help="path to the saved model in case of loading from saved")
-    parser.add_argument('--resume_train', type=bool, default=False, 
-                        help="True for resuming training from a saved model")
+    parser.add_argument('--eval_while_train', default = False, action = 'store_true',
+                        help = "if evaluation on dev set is required during training.")
+    parser.add_argument('--test_while_train', default=False, action = 'store_true',
+                        help = "if evaluation on test set is required during training.")
+    parser.add_argument('--resume_train', default=False, action = 'store_true',
+                        help="Set for resuming training from a saved model")
+    parser.add_argument('--finetune', default= False, action = 'store_true',
+                        help = "If only the shared model is to be loaded with saved pre-trained multi-task model.\
+                            In this case, you can specify your own tasks with task file and use the pre-trained shared model\
+                            to finetune upon.")
+    parser.add_argument('--debug_mode', default = False, action = 'store_true', 
+                        help = "record logs for debugging if True")
+    parser.add_argument('--silent', default = False, action = 'store_true', 
+                        help = "Only write logs to file if True")
     return parser
-    
     
 parser = argparse.ArgumentParser()
 parser = make_arguments(parser)
@@ -193,9 +190,8 @@ def main():
     allParams['gpu'] = torch.cuda.is_available()
     logger.info('task parameters:\n {}'.format(taskParams.taskDetails))
 
-    if args.tensorboard:
-        tensorboard = SummaryWriter(log_dir = os.path.join(logDir, 'tb_logs'))
-        logger.info("Tensorboard writing at {}".format(os.path.join(logDir, 'tb_logs')))
+    tensorboard = SummaryWriter(log_dir = os.path.join(logDir, 'tb_logs'))
+    logger.info("Tensorboard writing at {}".format(os.path.join(logDir, 'tb_logs')))
 
     # making handlers for train
     logger.info("Creating data handlers for training...")
@@ -268,11 +264,11 @@ def main():
                                                                                     taskName,
                                                                                     avgLoss,
                                                                                     model.taskLoss.item()))
-                    if args.tensorboard:
-                        tensorboard.add_scalar('train/avg_loss', avgLoss, global_step= model.globalStep)
-                        tensorboard.add_scalar('train/{}_loss'.format(taskName),
-                                                model.taskLoss.item(),
-                                                global_step=model.globalStep)
+                    
+                    tensorboard.add_scalar('train/avg_loss', avgLoss, global_step= model.globalStep)
+                    tensorboard.add_scalar('train/{}_loss'.format(taskName),
+                                            model.taskLoss.item(),
+                                            global_step=model.globalStep)
                 
                 if args.save_per_updates > 0 and  ( (model.globalStep+1) % args.save_per_updates)==0 and (model.accumulatedStep+1==args.grad_accumulation_steps):
                     savePath = os.path.join(args.out_dir, 'multi_task_model_{}_{}.pt'.format(epoch,

@@ -225,9 +225,8 @@ class multiTaskModel:
         if self.lossClassList[taskId] and (target is not None):
             self.taskLoss = self.lossClassList[taskId](logits, target, attnMasks=modelInputs[2])
             #tensorboard details
-            if self.params['tensorboard']:
-                self.tbTaskId = taskId
-                self.tbTaskLoss = self.taskLoss.item()
+            self.tbTaskId = taskId
+            self.tbTaskLoss = self.taskLoss.item()
         taskLoss = self.taskLoss / self.params['grad_accumulation_steps']
         taskLoss.backward()
         self.accumulatedStep += 1

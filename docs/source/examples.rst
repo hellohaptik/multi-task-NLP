@@ -1,14 +1,13 @@
 Examples
 ===========
-Here you can find various conversational AI tasks as examples and can train multi-task models
-in simple steps mentioned in the notebooks.
+Here you can find various NLP (especially conversational AI) tasks as examples and can train them either in multi-task or single-task manner, using some simple steps mentioned in the notebooks.
 
 Example-1 Intent detection, NER, Fragment detection
 ---------------------------------------------------
 
 **Tasks Description**
 
-``Intent Detection`` :- This is a single sentence classification task where an `intent` specifies which class the data sample belongs to. 
+``Intent Detection`` :- This can be modeled as a single sentence classification task where an `intent` specifies which class the query belongs to. 
 
 ``NER`` :- This is a Named Entity Recognition/ Sequence Labelling/ Slot filling task where individual words of the sentence are tagged with an entity label it belongs to. The words which don't belong to any entity label are simply labeled as "O". 
 
@@ -18,7 +17,7 @@ Example-1 Intent detection, NER, Fragment detection
 
 NER helps in extracting values for required entities (eg. location, date-time) from query.
 
-Fragment detection is a very useful piece in conversational system as knowing if a query/sentence is incomplete can aid in discarding bad queries beforehand.
+Fragment detection is a very useful piece in conversational system as knowing if a query/sentence is incomplete can aid in recognising ill-formed , incomplete user queries and apprpriate expanded options can be provided to the user .
 
 **Data** :- In this example, we are using the `SNIPS <https://snips-nlu.readthedocs.io/en/latest/dataset.html>`_  data for intent and entity detection. For the sake of simplicity, we provide 
 the data in simpler form under ``snips_data`` directory taken from `here <https://github.com/LeePleased/StackPropagation-SLU/tree/master/data/snips>`_.
@@ -29,15 +28,14 @@ the data in simpler form under ``snips_data`` directory taken from `here <https:
 
 **Notebook** :- `intent_ner_fragment <https://github.com/hellohaptik/multi-task-NLP/blob/master/examples/intent_ner_fragment/intent_ner_fragment.ipynb>`_
 
-Example-2 Entailment detection
+Example-2 Recognising Textual Entailment 
 ------------------------------
 
 **Tasks Description**
 
-``Entailment`` :- This is a sentence pair classification task which determines whether the second sentence in a sample can be inferred from the first.
+``Entailment`` :- This is a sentence pair classification task . Given two text instances ‘premise’ and ‘Hypothesis’, Textual Entailment Recognition is the task of determining whether the hypothesis is entailed (can be inferred) from the premise or not.
 
-**Conversational Utility** :-  In conversational AI context, this task can be seen as determining whether the second sentence is similar to first or not.
-Additionally, the probability score can also be used as a similarity score between the sentences. 
+**Conversational Utility** :-  it can be used for evaluating pairwise similarity between queries , also to determine if a query is out-of-context or adversarial in conversational AI usecases like FAQ question answering. 
 
 **Data** :- In this example, we are using the `SNLI <https://nlp.stanford.edu/projects/snli>`_ data which is having sentence pairs and labels.
 

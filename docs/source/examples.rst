@@ -29,7 +29,7 @@ the data in simpler form under ``snips_data`` directory taken from `here <https:
 **Notebook** :- `intent_ner_fragment <https://github.com/hellohaptik/multi-task-NLP/blob/master/examples/intent_ner_fragment/intent_ner_fragment.ipynb>`_
 
 Example-2 Recognising Textual Entailment 
-------------------------------
+----------------------------------------
 
 **Tasks Description**
 

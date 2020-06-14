@@ -164,65 +164,170 @@ in simple steps mentioned in the notebooks.
 
 ### Example-1 Intent detection, NER, Fragment detection
 
-**Tasks Description**
+**Intent Detection**
 
-``Intent Detection`` :- This is a single sentence classification task where an `intent` specifies which class the data sample belongs to. 
+```
+ Query: I need a reservation for a bar in bangladesh on feb the 11th 2032
+ 
+ Intent: BookRestaurant
+```
 
-``NER`` :- This is a Named Entity Recognition/ Sequence Labelling/ Slot filling task where individual words of the sentence are tagged with an entity label it belongs to. The words which don't belong to any entity label are simply labeled as "O". 
+**NER**
 
-``Fragment Detection`` :- This is modeled as a single sentence classification task which detects whether a sentence is incomplete (fragment) or not (non-fragment).
+```
+Query: ['book', 'a', 'spot', 'for', 'ten', 'at', 'a', 'top-rated', 'caucasian', 'restaurant', 'not', 'far', 'from', 'selmer']
 
-**Conversational Utility** :-  Intent detection is one of the fundamental components for conversational system as it gives a broad understand of the category/domain the sentence/query belongs to.
+NER tags: ['O', 'O', 'O', 'O', 'B-party_size_number', 'O', 'O', 'B-sort', 'B-cuisine', 'B-restaurant_type', 'B-spatial_relation', 'I-spatial_relation', 'O', 'B-city']
+```
 
-NER helps in extracting values for required entities (eg. location, date-time) from query.
+**Fragment Detection**
 
-Fragment detection is a very useful piece in conversational system as knowing if a query/sentence is incomplete can aid in discarding bad queries beforehand.
+```
+Query: a reservation for
 
-**Data** :- In this example, we are using the [SNIPS](https://snips-nlu.readthedocs.io/en/latest/dataset.html) data for intent and entity detection. For the sake of simplicity, we provide 
-the data in simpler form under ``snips_data`` directory taken from [here](https://github.com/LeePleased/StackPropagation-SLU/tree/master/data/snips>).
+Label: fragment
+```
+
+**Notebook** :- [intent_ner_fragment](https://github.com/hellohaptik/multi-task-NLP/blob/master/examples/intent_ner_fragment/intent_ner_fragment.ipynb)
 
 **Transform file** :- [transform_file_snips](https://github.com/hellohaptik/multi-task-NLP/blob/master/examples/intent_ner_fragment/transform_file_snips.yml)
 
 **Tasks file** :-  [tasks_file_snips](https://github.com/hellohaptik/multi-task-NLP/blob/master/examples/intent_ner_fragment/tasks_file_snips.yml)
 
-**Notebook** :- [intent_ner_fragment](https://github.com/hellohaptik/multi-task-NLP/blob/master/examples/intent_ner_fragment/intent_ner_fragment.ipynb)
-
 ### Example-2 Entailment detection
 
-**Tasks Description**
+```
+Query1: An old man with a package poses in front of an advertisement.
 
-``Entailment`` :- This is a sentence pair classification task which determines whether the second sentence in a sample can be inferred from the first.
+Query2: A man poses in front of an ad.
 
-**Conversational Utility** :-  In conversational AI context, this task can be seen as determining whether the second sentence is similar to first or not.
-Additionally, the probability score can also be used as a similarity score between the sentences. 
+Label: entailment
 
-**Data** :- In this example, we are using the [SNLI](https://nlp.stanford.edu/projects/snli) data which is having sentence pairs and labels.
+Query1: An old man with a package poses in front of an advertisement.
+
+Query2: A man poses in front of an ad for beer.
+
+Label: non-entailment
+
+```
+
+**Notebook** :- [entailment_snli](https://github.com/hellohaptik/multi-task-NLP/tree/master/examples/entailment_detection/entailment_snli.ipynb)
 
 **Transform file** :- [transform_file_snli](https://github.com/hellohaptik/multi-task-NLP/tree/master/examples/entailment_detection/transform_file_snli.yml)
 
 **Tasks file** :- [tasks_file_snli](https://github.com/hellohaptik/multi-task-NLP/tree/master/examples/entailment_detection/tasks_file_snli.yml)
 
-**Notebook** :- [entailment_snli](https://github.com/hellohaptik/multi-task-NLP/tree/master/examples/entailment_detection/entailment_snli.ipynb)
+
 
 ### Example-3 Answerability detection
 
-**Tasks Description**
+```
+Query: how much money did evander holyfield make
 
-``answerability`` :- This is modeled as a sentence pair classification task where the first sentence is a query and second sentence is a context passage.
-The objective of this task is to determine whether the query can be answered from the context passage or not.
+Context: Evander Holyfield Net Worth. How much is Evander Holyfield Worth? Evander Holyfield Net Worth: Evander Holyfield is a retired American professional boxer who has a net worth of $500 thousand. A professional boxer, Evander Holyfield has fought at the Heavyweight, Cruiserweight, and Light-Heavyweight Divisions, and won a Bronze medal a the 1984 Olympic Games.
 
-**Conversational Utility** :- This can be a useful component for building a question-answering/ machine comprehension based system.
-In such cases, it becomes very important to determine whether the given query can be answered with given context passage or not before extracting/abstracting an answer from it.
-Performing question-answering for a query which is not answerable from the context, could lead to incorrect answer extraction.
-
-**Data** :- In this example, we are using the [MSMARCO_triples](https://msmarco.blob.core.windows.net/msmarcoranking/triples.train.small.tar.gz") data which is having sentence pairs and labels.
-The data contains triplets where the first entry is the query, second one is the context passage from which the query can be answered (positive passage) , while the third entry is a context
-passage from which the query cannot be answered (negative passage).
-
-Data is transformed into sentence pair classification format, with query-positive context pair labeled as 1 (answerable) and query-negative context pair labeled as 0 (non-answerable)
+Label: answerable
+```
+**Notebook** :- [answerability_detection_msmarco](https://github.com/hellohaptik/multi-task-NLP/tree/master/examples/answerability_detection/answerability_detection_msmarco.ipynb)
 
 **Transform file** :- [transform_file_answerability](https://github.com/hellohaptik/multi-task-NLP/tree/master/examples/answerability_detection/transform_file_answerability.yml)
 
 **Tasks file** :- [tasks_file_answerability](https://github.com/hellohaptik/multi-task-NLP/tree/master/examples/answerability_detection/tasks_file_answerability.yml)
 
-**Notebook** :- [answerability_detection_msmarco](https://github.com/hellohaptik/multi-task-NLP/tree/master/examples/answerability_detection/answerability_detection_msmarco.ipynb)
+### Example-4 Query type detection
+
+```
+Query: what's the distance between destin florida and birmingham alabama?
+
+Label: NUMERIC
+
+Query: who is suing scott wolter
+
+Label: PERSON
+
+```
+
+**Notebook** :- [query_type_detection](https://github.com/hellohaptik/multi-task-NLP/blob/master/examples/query_type_detection/query_type_detection.ipynb)
+
+**Transform file** :- [transform_file_querytype](https://github.com/hellohaptik/multi-task-NLP/blob/master/examples/query_type_detection/transform_file_querytype.yml)
+
+**Tasks file** :- [tasks_file_querytype](https://github.com/hellohaptik/multi-task-NLP/blob/master/examples/query_type_detection/tasks_file_querytype.yml)
+
+### Example-5 POS tagging, NER tagging
+
+```
+Query: ['Despite', 'winning', 'the', 'Asian', 'Games', 'title', 'two', 'years', 'ago', ',', 'Uzbekistan', 'are', 'in', 'the', 'finals', 'as', 'outsiders', '.']
+
+NER tags: ['O', 'O', 'O', 'I-MISC', 'I-MISC', 'O', 'O', 'O', 'O', 'O', 'I-LOC', 'O', 'O', 'O', 'O', 'O', 'O', 'O']
+
+POS tags: ['I-PP', 'I-VP', 'I-NP', 'I-NP', 'I-NP', 'I-NP', 'B-NP', 'I-NP', 'I-ADVP', 'O', 'I-NP', 'I-VP', 'I-PP', 'I-NP', 'I-NP', 'I-SBAR', 'I-NP', 'O']
+
+```
+
+**Notebook** :- [ner_pos_tagging_conll](https://github.com/hellohaptik/multi-task-NLP/blob/master/examples/ner_pos_tagging/ner_pos_tagging_conll.ipynb)
+
+**Transform file** :- [transform_file_conll](https://github.com/hellohaptik/multi-task-NLP/blob/master/examples/ner_pos_tagging/transform_file_conll.yml)
+
+**Tasks file** :- [tasks_file_conll](https://github.com/hellohaptik/multi-task-NLP/blob/master/examples/ner_pos_tagging/tasks_file_conll.yml)
+
+## Example-6 Query correctness
+
+```
+
+Query: What places have the oligarchy government ?
+
+Label: well-formed
+
+Query: What day of Diwali in 1980 ?
+
+Label: not well-formed
+
+```
+
+**Notebook** :- [query_correctness](https://github.com/hellohaptik/multi-task-NLP/blob/master/examples/query_correctness/query_correctness.ipynb)
+
+**Transform file** :- [transform_file_query_correctness](https://github.com/hellohaptik/multi-task-NLP/blob/master/examples/query_correctness/transform_file_query_correctness.yml)
+
+**Tasks file** :- [tasks_file_query_correctness](https://github.com/hellohaptik/multi-task-NLP/blob/master/examples/query_correctness/tasks_file_query_correctness.yml)
+
+
+## Example-7 Query similarity
+
+```
+
+Query1: What is the most used word in Malayalam?
+
+Query2: What is meaning of the Malayalam word ""thumbatthu""?
+
+Label: not similar
+
+Query1: Which is the best compliment you have ever received?
+
+Query2: What's the best compliment you've got?
+
+Label: similar
+
+```
+**Notebook** :- [query_similarity](https://github.com/hellohaptik/multi-task-NLP/blob/master/examples/query_pair_similarity/query_similarity_qqp.ipynb)
+
+**Transform file** :- [transform_file_qqp](https://github.com/hellohaptik/multi-task-NLP/blob/master/examples/query_pair_similarity/transform_file_qqp.yml)
+
+**Tasks file** :- [tasks_file_qqp](https://github.com/hellohaptik/multi-task-NLP/blob/master/examples/query_pair_similarity/tasks_file_query_qqp.yml)
+
+## Example-8 Sentiment Analysis
+
+```
+
+Review: What I enjoyed most in this film was the scenery of Corfu, being Greek I adore my country and I liked the flattering director's point of view. Based on a true story during the years when Greece was struggling to stand on her own two feet through war, Nazis and hardship. An Italian soldier and a Greek girl fall in love but the times are hard and they have a lot of sacrifices to make. Nicholas Cage looking great in a uniform gives a passionate account of this unfulfilled (in the beginning) love. I adored Christian Bale playing Mandras the heroine's husband-to-be, he looks very very good as a Greek, his personality matched the one of the Greek patriot! A true fighter in there, or what! One of the movies I would like to buy and keep it in my collection...for ever!
+
+Label: positive
+
+```
+
+**Notebook** :- [IMDb_sentiment_analysis](https://github.com/hellohaptik/multi-task-NLP/blob/master/examples/sentiment_analysis/IMDb_sentiment_analysis.ipynb)
+
+**Transform file** :- [transform_file_imdb](https://github.com/hellohaptik/multi-task-NLP/blob/master/examples/sentiment_analysis/transform_file_imdb.yml)
+
+**Tasks file** :- [tasks_file_imdb](https://github.com/hellohaptik/multi-task-NLP/blob/master/examples/sentiment_analysis/tasks_file_query_imdb.yml)
+
+

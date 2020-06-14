@@ -174,6 +174,27 @@ def snips_intent_ner_to_tsv(dataDir, readFile, wrtDir, transParamDict, isTrainFi
     
 
 def coNLL_ner_pos_to_tsv(dataDir, readFile, wrtDir, transParamDict, isTrainFile=False):
+    
+    """
+    This function transforms the data present in coNLL_data/. 
+    Raw data is in BIO tagged format with the POS and NER tags separated by space.
+    The transformation function converts the each raw data file into two separate tsv files,
+    one for POS tagging task and another for NER task. Following transformed files are written at wrtDir
+
+    - NER transformed tsv file.
+    - NER label map joblib file.
+    - POS transformed tsv file.
+    - POS label map joblib file.
+
+    For using this transform function, set ``transform_func`` : **snips_intent_ner_to_tsv** in transform file.
+
+    Args:
+        dataDir (:obj:`str`) : Path to the directory where the raw data files to be read are present..
+        readFile (:obj:`str`) : This is the file which is currently being read and transformed by the function.
+        wrtDir (:obj:`str`) : Path to the directory where to save the transformed tsv files.
+        transParamDict (:obj:`dict`, defaults to :obj:`None`): Dictionary of function specific parameters. Not required for this transformation function.
+
+    """
 
     
     f = open(os.path.join(dataDir, readFile))
@@ -208,15 +229,16 @@ def coNLL_ner_pos_to_tsv(dataDir, readFile, wrtDir, transParamDict, isTrainFile=
                 labelPos = []
                 uid += 1
             continue
+            
         sentence.append(wordSplit[0])
-        labelPos.append(wordSplit[1])
+        labelPos.append(wordSplit[-2])
         labelNer.append(wordSplit[-1])
         if isTrainFile:
             if wordSplit[-1] not in labelMapNer:
                 # ONLY TRAIN FILE SHOULD BE USED TO CREATE LABEL MAP FILE.
                 labelMapNer[wordSplit[-1]] = len(labelMapNer)
-            if wordSplit[1] not in labelMapPos:
-                labelMapPos[wordSplit[1]] = len(labelMapPos)
+            if wordSplit[-2] not in labelMapPos:
+                labelMapPos[wordSplit[-2]] = len(labelMapPos)
     
     print("NER File Written at {}".format(wrtDir))
     print("POS File Written at {}".format(wrtDir))
@@ -450,7 +472,7 @@ def msmarco_query_type_to_tsv(dataDir, readFile, wrtDir, transParamDict, isTrain
         labelMapPath = os.path.join(wrtDir, 'querytype_{}_label_map.joblib'.format(readFile.lower().replace('.json', '')))
         joblib.dump(labelMap, labelMapPath)
         print('Created label map file at', labelMapPath)
-
+        
 def imdb_sentiment_data_to_tsv(dataDir, readFile, wrtDir, transParamDict, isTrainFile=False):
     
     """
@@ -624,34 +646,38 @@ def msmarco_answerability_detection_to_tsv(dataDir, readFile, wrtDir, transParam
     
     devDf.to_csv(os.path.join(wrtDir, 'msmarco_answerability_test.tsv'), sep='\t', index=False, header=False)
     print('Test file written at: ', os.path.join(wrtDir, 'msmarco_answerability_test.tsv'))
-
+    
 def query_correctness_to_tsv(dataDir, readFile, wrtDir, transParamDict, isTrainFile=False):
 
     """
+
     - Query correctness transformed file
+
     For using this transform function, set ``transform_func`` : **query_correctness_to_tsv** in transform file.
+
     Args:
         dataDir (:obj:`str`) : Path to the directory where the raw data files to be read are present..
         readFile (:obj:`str`) : This is the file which is currently being read and transformed by the function.
         wrtDir (:obj:`str`) : Path to the directory where to save the transformed tsv files.
         transParamDict (:obj:`dict`, defaults to :obj:`None`): Dictionary of function specific parameters. Not required for this transformation function.
+
     """
     print('Making data from file {}'.format(readFile))
     df = pd.read_csv(os.path.join(dataDir, readFile), sep='\t', header=None, names = ['query', 'label'])
-
+    
     # we consider anything above 0.6 as structured query (3 or more annotations as structured), and others as non-structured
-
+    
     #df['label'] = [str(lab) for lab in df['label']]
     df['label'] = [int(lab>=0.6)for lab in df['label']]
-
+    
     data = [ [str(i), str(row['label']), row['query'] ] for i, row in df.iterrows()]
-
+    
     wrtDf = pd.DataFrame(data, columns = ['uid', 'label', 'query'])
-
+    
     #writing
     wrtDf.to_csv(os.path.join(wrtDir, 'query_correctness_{}'.format(readFile)), sep="\t", index=False, header=False)
     print('File saved at: ', os.path.join(wrtDir, 'query_correctness_{}'.format(readFile)))
-      
+    
 def clinc_out_of_scope_to_tsv(dataDir, readFile, wrtDir, transParamDict, isTrainFile=False):
     
     """
@@ -733,3 +759,4 @@ def clinc_out_of_scope_to_tsv(dataDir, readFile, wrtDir, transParamDict, isTrain
         testF.write("{}\t{}\t{}\n".format(uid, lab, samp))
     print('Test file written at: ', os.path.join(wrtDir, 'clinc_outofscope_test.tsv'))
     testF.close()
+    

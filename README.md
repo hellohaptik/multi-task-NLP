@@ -164,6 +164,7 @@ in simple steps mentioned in the notebooks.
 
 ### Example-1 Intent detection, NER, Fragment detection
 *(Setup : Multi-task , Task type : Multiple)*
+
 **Intent Detection(Task type : Single sentence classification)**
 
 ```

@@ -20,7 +20,7 @@
 </p> 
 
 multi_task_NLP is a utility toolkit enabling NLP developers to easily train and infer a single model for multiple tasks.
-We support various data formats for majority of NLI tasks and multiple transformer-based encoders (eg. BERT, Distil-BERT, ALBERT, RoBERTa, XLNET etc.)
+We support various data formats for majority of NLU tasks and multiple transformer-based encoders (eg. BERT, Distil-BERT, ALBERT, RoBERTa, XLNET etc.)
 
 For complete documentation for this library, please refer to [documentation](https://multi-task-nlp.readthedocs.io/en/latest/)
 
@@ -50,7 +50,7 @@ NOTE:- The library is built and tested using ``Python 3.7.3``. It is recommended
  
 ## Quickstart Guide
 
-A quick guide to show how a single model can be trained for multiple NLI tasks in just 3 simple steps
+A quick guide to show how a model can be trained for single/multiple NLU tasks in just 3 simple steps
 and with **no requirement to code!!**
 
 Follow these 3 simple steps to train your multi-task model!
@@ -163,8 +163,9 @@ Here you can find various conversational AI tasks as examples and can train mult
 in simple steps mentioned in the notebooks.
 
 ### Example-1 Intent detection, NER, Fragment detection
+*(Setup : Multi-task , Task type : Multiple)*
 
-**Intent Detection**
+**Intent Detection(Task type : Single sentence classification)**
 
 ```
  Query: I need a reservation for a bar in bangladesh on feb the 11th 2032
@@ -172,7 +173,7 @@ in simple steps mentioned in the notebooks.
  Intent: BookRestaurant
 ```
 
-**NER**
+**NER (Task type :sequence labelling)**
 
 ```
 Query: ['book', 'a', 'spot', 'for', 'ten', 'at', 'a', 'top-rated', 'caucasian', 'restaurant', 'not', 'far', 'from', 'selmer']
@@ -180,7 +181,7 @@ Query: ['book', 'a', 'spot', 'for', 'ten', 'at', 'a', 'top-rated', 'caucasian', 
 NER tags: ['O', 'O', 'O', 'O', 'B-party_size_number', 'O', 'O', 'B-sort', 'B-cuisine', 'B-restaurant_type', 'B-spatial_relation', 'I-spatial_relation', 'O', 'B-city']
 ```
 
-**Fragment Detection**
+**Fragment Detection (Task type : single sentence classification)**
 
 ```
 Query: a reservation for
@@ -195,6 +196,7 @@ Label: fragment
 **Tasks file** :-  [tasks_file_snips](https://github.com/hellohaptik/multi-task-NLP/blob/master/examples/intent_ner_fragment/tasks_file_snips.yml)
 
 ### Example-2 Entailment detection
+*(Setup : single-task , Task type : sentence pair classification)*
 
 ```
 Query1: An old man with a package poses in front of an advertisement.
@@ -220,6 +222,7 @@ Label: non-entailment
 
 
 ### Example-3 Answerability detection
+*(Setup : single-task , Task type : sentence pair classification)*
 
 ```
 Query: how much money did evander holyfield make
@@ -235,6 +238,7 @@ Label: answerable
 **Tasks file** :- [tasks_file_answerability](https://github.com/hellohaptik/multi-task-NLP/tree/master/examples/answerability_detection/tasks_file_answerability.yml)
 
 ### Example-4 Query type detection
+*(Setup : single-task , Task type : single sentence classification)*
 
 ```
 Query: what's the distance between destin florida and birmingham alabama?
@@ -254,6 +258,7 @@ Label: PERSON
 **Tasks file** :- [tasks_file_querytype](https://github.com/hellohaptik/multi-task-NLP/blob/master/examples/query_type_detection/tasks_file_querytype.yml)
 
 ### Example-5 POS tagging, NER tagging
+*(Setup : Multi-task , Task type : sequence labelling)*
 
 ```
 Query: ['Despite', 'winning', 'the', 'Asian', 'Games', 'title', 'two', 'years', 'ago', ',', 'Uzbekistan', 'are', 'in', 'the', 'finals', 'as', 'outsiders', '.']
@@ -271,6 +276,7 @@ POS tags: ['I-PP', 'I-VP', 'I-NP', 'I-NP', 'I-NP', 'I-NP', 'B-NP', 'I-NP', 'I-AD
 **Tasks file** :- [tasks_file_conll](https://github.com/hellohaptik/multi-task-NLP/blob/master/examples/ner_pos_tagging/tasks_file_conll.yml)
 
 ## Example-6 Query correctness
+*(Setup : single-task , Task type : single sentence classification)*
 
 ```
 
@@ -292,6 +298,7 @@ Label: not well-formed
 
 
 ## Example-7 Query similarity
+*(Setup : single-task , Task type : single sentence classification)*
 
 ```
 
@@ -315,6 +322,7 @@ Label: similar
 **Tasks file** :- [tasks_file_qqp](https://github.com/hellohaptik/multi-task-NLP/blob/master/examples/query_pair_similarity/tasks_file_query_qqp.yml)
 
 ## Example-8 Sentiment Analysis
+*(Setup : single-task , Task type : single sentence classification)*
 
 ```
 

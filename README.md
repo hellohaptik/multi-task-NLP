@@ -181,7 +181,7 @@ Query: ['book', 'a', 'spot', 'for', 'ten', 'at', 'a', 'top-rated', 'caucasian', 
 NER tags: ['O', 'O', 'O', 'O', 'B-party_size_number', 'O', 'O', 'B-sort', 'B-cuisine', 'B-restaurant_type', 'B-spatial_relation', 'I-spatial_relation', 'O', 'B-city']
 ```
 
-**Fragment Detection (Task type : single sentence classification) **
+**Fragment Detection (Task type : single sentence classification)**
 
 ```
 Query: a reservation for

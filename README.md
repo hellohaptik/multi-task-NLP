@@ -20,7 +20,7 @@
 </p> 
 
 multi_task_NLP is a utility toolkit enabling NLP developers to easily train and infer a single model for multiple tasks.
-We support various data formats for majority of NLI tasks and multiple transformer-based encoders (eg. BERT, Distil-BERT, ALBERT, RoBERTa, XLNET etc.)
+We support various data formats for majority of NLU tasks and multiple transformer-based encoders (eg. BERT, Distil-BERT, ALBERT, RoBERTa, XLNET etc.)
 
 For complete documentation for this library, please refer to [documentation](https://multi-task-nlp.readthedocs.io/en/latest/)
 
@@ -50,7 +50,7 @@ NOTE:- The library is built and tested using ``Python 3.7.3``. It is recommended
  
 ## Quickstart Guide
 
-A quick guide to show how a single model can be trained for multiple NLI tasks in just 3 simple steps
+A quick guide to show how a model can be trained for single/multiple NLU tasks in just 3 simple steps
 and with **no requirement to code!!**
 
 Follow these 3 simple steps to train your multi-task model!

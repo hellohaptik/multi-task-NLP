@@ -11,6 +11,9 @@ class TasksParam:
     def __init__(self, taskFilePath):
         # dictioanry holding all the tasks details with 
         # task name as key.
+        #The idea to store, retrieve task information in yaml file and process using dictionary maps and IntEnum classes
+        # is inspired from Microsoft's mt-dnn <https://github.com/namisan/mt-dnn>
+        
         self.taskDetails = yaml.safe_load(open(taskFilePath))
         self.modelType = self.validity_checks()
 

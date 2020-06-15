@@ -66,12 +66,12 @@ You can use the following terminal command with your own argument values to run.
         --train_batch_size 4 \
         --eval_batch_size 8 \
         --grad_accumulation_steps 2 \
+        --max_seq_len 50 \
         --log_per_updates 25 \
         --save_per_updates 1000 \
-        --eval_while_train True \
-        --test_while_train True \
-        --max_seq_len 50 \
-        --silent True 
+        --eval_while_train \
+        --test_while_train  \
+        --silent
 
 Logs and tensorboard
 --------------------

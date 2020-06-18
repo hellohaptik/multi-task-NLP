@@ -39,6 +39,10 @@ def make_arguments(parser):
                         help = "number of steps to accumulate gradients before update")
     parser.add_argument('--num_of_warmup_steps', type=int, default = 0,
                         help = "warm-up value for scheduler")
+    parser.add_argument('--learning_rate', type=float, default=2e-5,
+                       help = "learning rate for optimizer")
+    parser.add_argument('--epsilon', type=float, default=1e-8,
+                       help="epsilon value for optimizer")
     parser.add_argument('--grad_clip_value', type = float, default=1.0,
                         help = "gradient clipping value to avoid gradient overflowing" )
     parser.add_argument('--log_file', default='multi_task_logs.log', type = str,
@@ -215,6 +219,9 @@ def main():
     #making multi-task model
     allParams['num_train_steps'] = math.ceil(len(multiTaskDataLoaderTrain)/args.train_batch_size) *args.epochs // args.grad_accumulation_steps
     allParams['warmup_steps'] = args.num_of_warmup_steps
+    allParams['learning_rate'] = args.learning_rate
+    allParams['epsilon'] = args.epsilon
+    
     logger.info("NUM TRAIN STEPS: {}".format(allParams['num_train_steps']))
     logger.info("len of dataloader: {}".format(len(multiTaskDataLoaderTrain)))
     logger.info("Making multi-task model...")

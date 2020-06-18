@@ -153,12 +153,14 @@ class multiTaskModel:
         #print(self.network.state_dict().keys())
         #optimizer and scheduler
         self.optimizer, self.scheduler = self.make_optimizer(numTrainSteps=self.params['num_train_steps'],
-                                                            warmupSteps=self.params['warmup_steps'])
+                                                            warmupSteps=self.params['warmup_steps'],
+                                                            lr = self.params["learning_rate"],
+                                                            eps = self.params["epsilon"])
         #loss class list
         self.lossClassList = self.make_loss_list()
 
 
-    def make_optimizer(self, numTrainSteps, lr = 2e-5, eps = 1e-8, warmupSteps=0):
+    def make_optimizer(self, numTrainSteps, lr, eps, warmupSteps=0):
         # we will use AdamW optimizer from huggingface transformers. This optimizer is 
         #widely used with BERT. It is modified form of Adam which is used in Tensorflow 
         #implementations        

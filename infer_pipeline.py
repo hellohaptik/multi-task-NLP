@@ -62,6 +62,8 @@ class inferPipeline:
         # dummy values
         allParams['num_train_steps'] = 10
         allParams['warmup_steps'] = 0
+        allParams['learning_rate'] = 2e-5
+        allParams['epsilon'] = 1e-8
 
         #making and loading model
         self.model = multiTaskModel(allParams)

@@ -6,7 +6,7 @@ transformers==2.8.0
 joblib==0.13.2
 torch==1.2.0
 tensorflow==1.15.2
-numpy==1.18.1
+numpy==1.22.0
 sphinx_rtd_theme==0.4.3
 pandas==1.0.1
 scikit_learn==0.23.1

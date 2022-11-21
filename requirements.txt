@@ -5,7 +5,7 @@ Keras==2.3.1
 transformers==2.8.0
 joblib==0.13.2
 torch==1.2.0
-tensorflow==1.15.2
+tensorflow==2.9.3
 numpy==1.18.1
 sphinx_rtd_theme==0.4.3
 pandas==1.0.1
